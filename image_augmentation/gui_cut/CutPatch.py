@@ -132,10 +132,10 @@ def save_images():
         x = pos_w * step_w
         sub_image = np.flipud(image[y:y+step_h, x:x+step_w, :])
         if patch:
-            patch_path = f"{root_im_dir}/{nolabel_dir}/{fname}_{N}.png"
+            patch_path = f"{root_im_dir}/{nolabel_dir}/{fname}_{N}.jpg"
         else:
-            patch_path = f"{root_im_dir}/{label.get()}/{fname}_{N}.png"
-        Image.fromarray(sub_image).save(patch_path)
+            patch_path = f"{root_im_dir}/{label.get()}/{fname}_{N}.jpg"
+        Image.fromarray(sub_image).save(patch_path, format="JPEG", quality=100))
 
 save_button = tk.Button(root, text="Save", command=save_images)
 save_button.grid(row=2, column=1)
