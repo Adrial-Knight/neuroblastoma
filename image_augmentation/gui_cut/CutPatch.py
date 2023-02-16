@@ -41,10 +41,12 @@ def select_image():
     global filepath, ax, image
     global H, W
     if filepath := filedialog.askopenfilename():
+        fname, _ = os.path.splitext(os.path.basename(filepath))
         fig, ax = plt.subplots()
         image = plt.imread(filepath)
         H, W, _ = np.shape(image)
         plt.imshow(image)
+        plt.title(fname)
         plt.xlim([0, W])
         plt.ylim([0, H])
         cid = fig.canvas.mpl_connect('button_press_event', onclick)
@@ -135,7 +137,7 @@ def save_images():
             patch_path = f"{root_im_dir}/{nolabel_dir}/{fname}_{N}.jpg"
         else:
             patch_path = f"{root_im_dir}/{label.get()}/{fname}_{N}.jpg"
-        Image.fromarray(sub_image).save(patch_path, format="JPEG", quality=100))
+        Image.fromarray(sub_image).save(patch_path, format="JPEG", quality=100)
 
 save_button = tk.Button(root, text="Save", command=save_images)
 save_button.grid(row=2, column=1)
