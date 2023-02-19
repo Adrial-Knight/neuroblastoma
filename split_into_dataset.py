@@ -2,6 +2,7 @@ import os
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 
 
 def get_families(path):
@@ -85,11 +86,6 @@ def split_categories(family_info, p=[.7, .15, .15], mu=1, extra_capacity=0):
 
     return parts, capacity, diversity
 
-def display_proportion(family_info):
-    fig = plt.figure()
-    fig.suptitle(f"{family_info['label']} class balance")
-    plt.pie(family_info["proportions"], labels=family_info["category"], autopct='%1.1f%%')
-
 def display_balance_partition(family_infos, parts):
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
 
@@ -101,7 +97,7 @@ def display_balance_partition(family_infos, parts):
             plt.setp(axes[0].texts[2*i], visible=False)
             plt.setp(axes[0].texts[2*i+1], visible=False)
 
-    proportions = [P["capacity"] for P in parts]
+    proportions = [P["capacity"] if P["capacity"] > 0 else 0 for P in parts]
     datasets = ["Training", "Validation", "Test"]
     labels = [f"{dataset} ({len(P['category'])})" for dataset, P in zip(datasets, parts)]
     axes[1].pie(proportions, labels=labels, autopct="%1.1f%%")
@@ -128,7 +124,6 @@ def search1D(family_infos, prop, mu_list, extra_capacity):
         loss_diversity[i_mu] = np.mean(np.abs(diversity - 1/3))
     i_min = np.argmin(loss_capacity + loss_diversity)
     parts, _, _ = split_categories(family_infos, prop, mu_list[i_min], extra_capacity)
-    print(f"1D: mu={mu_list[i_min]}")
     return parts, loss_capacity, loss_diversity
 
 def search2D(family_infos, prop, mu_list, extra_capacity_list):
@@ -142,7 +137,6 @@ def search2D(family_infos, prop, mu_list, extra_capacity_list):
     min_idx = np.argmin(heatmap_capacity + heatmap_diversity)
     min_idx_2d = np.unravel_index(min_idx, heatmap_capacity.shape)
     parts, _, _ = split_categories(family_infos, prop, mu_list[min_idx_2d[0]], extra_capacity_list[min_idx_2d[1]])
-    print(f"2D: mu={mu_list[min_idx_2d[0]]}, extra={extra_capacity_list[min_idx_2d[1]]}")
     return parts, heatmap_capacity, heatmap_diversity
 
 def display_heatmaps(heatmap_capacity, heatmap_diversity, mu_list, extra_capacity_list):
@@ -159,17 +153,48 @@ def display_heatmaps(heatmap_capacity, heatmap_diversity, mu_list, extra_capacit
         axs[i].set_aspect("auto")
         fig.colorbar(im[i], ax=axs[i])
 
-def main1D(db):
-    class_names = ["PD", "D", "ED"]
-    fam_proportion_tab = []
+def split(db, prop=[.7, .15, .15], class_names=["PD", "D", "ED"]):
     class_infos = {}
-    prop = [.7, .15, .15]
-    mu = 0.3
     for cname in class_names:
         family_infos = get_families(path=f"{db}/{cname}")
         compute_proportions(family_infos)
         class_infos[cname] = family_infos
 
+    mu_list = np.linspace(0, 1, 1000)
+    extra_capacity_list = np.linspace(0, 0.1, 100)
+    partitions = {}
+    for cname, family_infos in class_infos.items():
+        # parts, _, _ = search1D(family_infos, prop, mu_list, extra_capacity=.05)
+        parts, _, _ = search2D(family_infos, prop, mu_list, extra_capacity_list)
+        partitions[cname] = parts
+
+    datasets = {"training":   {"files": {}, "pixels": {}},
+                "validation": {"files": {}, "pixels": {}},
+                "test":       {"files": {}, "pixels": {}}}
+    for dataset_id, dataset in enumerate(datasets.values()):
+        for cname, parts in partitions.items():
+            patterns = parts[dataset_id]["category"]
+            path = f"{db}/{cname}"
+            files = [file for file in os.listdir(path) if any(file.startswith(pattern) for pattern in patterns)]
+            dataset["files"][cname] = files
+            dataset["pixels"][cname] = 0
+            for fname in files:
+                with Image.open(f"{path}/{fname}") as img:
+                    W, H = img.size
+                    dataset["pixels"][cname] += W * H
+
+    with open(f"{db}/split.json", "w") as fd:
+        json.dump(datasets, fd, sort_keys=True, indent=4)
+    return datasets
+
+
+def test(db):
+    class_infos = {}
+    prop = [.7, .15, .15]
+    for cname in ["PD", "D", "ED"]:
+        family_infos = get_families(path=f"{db}/{cname}")
+        compute_proportions(family_infos)
+        class_infos[cname] = family_infos
 
     family_infos = class_infos["ED"]
 
@@ -189,6 +214,6 @@ def main1D(db):
     plt.show()
 
 
-
 if __name__ == "__main__":
-    main1D(db="database/224x224")
+    # test(db="database/224x224")
+    split(db="database/224x224")
