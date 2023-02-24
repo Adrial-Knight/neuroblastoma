@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import shutil
+from math import floor, ceil
 
 
 FIG_FOLDER = "figures"
@@ -123,17 +124,17 @@ def optimize_IFP(family_infos, prop, mu_list):
                "mu": mu_opt}
     return parts, metrics
 
-def optimize_IFPO(family_infos, prop, mu_list, extra_capacity_list):
-    heatmap_capacity  = np.zeros((len(mu_list), len(extra_capacity_list)))
-    heatmap_diversity = np.zeros((len(mu_list), len(extra_capacity_list)))
+def optimize_IFPO(family_infos, prop, mu_list, eps_list):
+    heatmap_capacity  = np.zeros((len(mu_list), len(eps_list)))
+    heatmap_diversity = np.zeros((len(mu_list), len(eps_list)))
     for i_mu, mu in enumerate(mu_list):
-        for i_xc, xc in enumerate(extra_capacity_list):
-            _, capacity, diversity = split_IFPO(family_infos, prop, mu, xc)
-            heatmap_capacity[i_mu, i_xc]  = np.mean(np.abs(capacity - prop))
-            heatmap_diversity[i_mu, i_xc] = np.mean(np.abs(diversity - 1/3))
+        for i_eps, eps in enumerate(eps_list):
+            _, capacity, diversity = split_IFPO(family_infos, prop, mu, eps)
+            heatmap_capacity[i_mu, i_eps]  = np.mean(np.abs(capacity - prop))
+            heatmap_diversity[i_mu, i_eps] = np.mean(np.abs(diversity - 1/3))
     min_idx = np.argmin(heatmap_capacity + heatmap_diversity)
     min_idx_2d = np.unravel_index(min_idx, heatmap_capacity.shape)
-    mu_opt, eps_opt = mu_list[min_idx_2d[0]], extra_capacity_list[min_idx_2d[1]]
+    mu_opt, eps_opt = mu_list[min_idx_2d[0]], eps_list[min_idx_2d[1]]
     parts, _, _ = split_IFPO(family_infos, prop, mu_opt, eps_opt)
     metrics = {"capacity": heatmap_capacity,
                "diversity": heatmap_diversity,
@@ -256,6 +257,46 @@ def assign_files(old_root: str, datasets: json):
                 shutil.copy(src_file, dst_file)
     with open(f"{new_root}/split.json", "w") as fd:
         json.dump(datasets, fd, sort_keys=True, indent=4)
+    return new_root
+
+def geometric_transform(image, nt):
+    im_list = [image, np.fliplr(image)]
+    id_list = ["original", "flip"]
+    for i in range(1, ceil(nt/2) + 1):
+        im_list.append(np.rot90(im_list[-2]))
+        im_list.append(np.rot90(im_list[-2]))
+        id_list.append(str(90*i))
+        id_list.append("flip" + str(90*i))
+    return im_list[:nt+1], id_list[:nt+1]
+
+def augment_and_balance(root: str, datasets: json):
+    t = 7
+    new_root = f"{root}_BA"
+    os.makedirs(new_root, exist_ok=True)
+    for dataset_id, dataset in datasets.items():
+        os.makedirs(f"{new_root}/{dataset_id}", exist_ok=True)
+        n_im_list = list(dataset["nb_im"].values())
+        n_im_max, n_im_min = max(n_im_list), min(n_im_list)
+        r = round(n_im_max / n_im_min)
+        ngca = floor((t+1)/r)-1 if t >= r else 0
+        for class_id, n_im in dataset["nb_im"].items():
+            os.makedirs(f"{new_root}/{dataset_id}/{class_id}", exist_ok=True)
+            r = round(n_im_max / n_im)
+            if r == 1: nt = ngca
+            else:
+                if t >= r-1: nt = r * ngca + r - 1
+                else: nt = t
+            class_path = f"{root}/{dataset_id}/{class_id}"
+            new_class_path = f"{new_root}/{dataset_id}/{class_id}"
+            file_names = dataset["files"][class_id]
+            for file_name in file_names:
+                file_path = f"{class_path}/{file_name}"
+                im = plt.imread(file_path)
+                im_list, id_list = geometric_transform(im, nt)
+                base_name = file_name.split(".")[0]
+                for im, id in zip(im_list, id_list):
+                    fpath = f"{new_class_path}/{base_name}_{id}.jpg"
+                    Image.fromarray(im).save(fpath, format="JPEG", quality=100)
 
 def test(db):
     class_infos = {}
@@ -300,4 +341,5 @@ if __name__ == "__main__":
     db="database/224x224"
     # test(db)
     datasets = split_files(db)
-    assign_files(db, datasets)
+    new_db = assign_files(db, datasets)
+    augment_and_balance(new_db, datasets)
