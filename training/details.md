@@ -18,26 +18,26 @@ ResNet family trained on ImageNet.
 
 ## ResNet 18 and classifiers
     self.resnet = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-    self.resnet.fc = nn.Sequential()
+
 ### Simple perceptron layer
 
-    self.fc = nn.Sequential(
+    self.resnet.fc = nn.Sequential(
         nn.Linear(in_features=512, out_features=1, bias=True),
         nn.Sigmoid()
     )
 
 | Optimizer | Learning rate | Momentum | Epochs (best) | Batch size | Test loss | Test acc |
 | --- | --- | --- | --- | --- | --- | --- |
-| Adam | 1e-6 | (0.9, 0.999) | 100 | 32 | 0.534 | 77.74% |
-| Adam | 5e-6 | (0.9, 0.999) | 100 | 32 | 0.458 | 80.73% |
-| Adam | 1e-5 | (0.9, 0.999) | 100 | 32 | 0.459 | 78.55% |
+| Adam | 1e-6 | (0.9, 0.999) | 100 (97) | 32 | 0.534 | 77.74% |
+| Adam | 5e-6 | (0.9, 0.999) | 100 (58) | 32 | 0.458 | 80.73% |
+| Adam | 1e-5 | (0.9, 0.999) | 100 (44) | 32 | 0.459 | 78.55% |
 | Adam | 5e-5 | (0.9, 0.999) | 100 (8) | 32 | 0.440 | 82.02% |
 | Adam | 1e-4 | (0.9, 0.999) | 25 (6) | 32 | 0.460 | 79.33% |
 | Adam | 5e-4 | (0.9, 0.999) | 10 (2) | 32 | 0.418 | 82.22% |
 | Adam | 1e-3 | (0.9, 0.999) | 5 (1) | 32 | 0.394 | 84.19% |
-| SGD | 1e-6 | 0.9 | 100 | 32 | 0.595 | 71.64% |
-| SGD | 5e-6 | 0.9 | 100 | 32 | 0.434 | 82.71% |
-| SGD | 1e-5 | 0.9 | 100 | 32 | 0.425 | 81.03% |
+| SGD | 1e-6 | 0.9 | 100 (84) | 32 | 0.595 | 71.64% |
+| SGD | 5e-6 | 0.9 | 100 (100) | 32 | 0.434 | 82.71% |
+| SGD | 1e-5 | 0.9 | 100 (63) | 32 | 0.425 | 81.03% |
 | SGD | 5e-5 | 0.9 | 100 (21) | 32 | 0.395 | 83.23% |
 | SGD | 1e-4 | 0.9 | 25 (5) | 32 |**0.380**| **84.55%**|
 | SGD | 5e-4 | 0.9 | 10 (1) | 32 | 0.421 | 84.02% |
@@ -47,7 +47,7 @@ Two fully connected layers with an intermediate non linear activation.
 
 #### ReLU
 
-    self.fc = nn.Sequential(
+    self.resnet.fc = nn.Sequential(
         nn.Linear(in_features=512, out_features=256, bias=True),
         nn.ReLU(),
         nn.Linear(in_features=256, out_features=1, bias=True),
@@ -69,7 +69,7 @@ Dropout is a regularization technique that randomly sets a fraction of the input
 
 LeakyReLU prevents the "dying ReLU" problem.
 
-    self.fc = nn.Sequential(
+    self.resnet.fc = nn.Sequential(
         nn.Linear(in_features=512, out_features=256, bias=True),
         nn.LeakyReLU(),
         nn.Dropout(p=0.5),
@@ -95,8 +95,9 @@ The next step is to use ResNet with more layers with a minimalist training class
 
 
 ## ResNet versions with a minimalist classifier
-    self.fc = nn.Sequential(
-        nn.Linear(in_features=512, out_features=1, bias=True),
+    resnet_out = 512 if resnet_version <= 34 else 2048
+    self.resnet.fc = nn.Sequential(
+        nn.Linear(in_features=resnet_out, out_features=1, bias=True),
         nn.Sigmoid()
     )
 ### Performances on ImageNet
@@ -105,15 +106,63 @@ Source: https://pytorch.org/vision/stable/models.html#table-of-all-available-cla
 | ResNet | v. weights | acc @1 | acc @5 | #Params | Size |
 | --- | --- | --- | --- | --- | --- |
 | 18  | v.1 | 69.76% | 89.08% | 11.7M | 44.7 Mo |
-| 34  | v.1 | 73.31% | 91.42% | 21.8M |
-| 50  | v.2 | 80.86% | 95.43% | 25.6M |
-| 101 | v.2 | 81.89% | 95.78% | 44.5M |
-| 152 | v.2 | 82.28% | 96.00% | 60.2M |
+| 34  | v.1 | 73.31% | 91.42% | 21.8M | 83.3 Mo
+| 50  | v.2 | 80.86% | 95.43% | 25.6M | 97.8 Mo
+| 101 | v.2 | 81.89% | 95.78% | 44.5M | 171 Mo
+| 152 | v.2 | 82.28% | 96.00% | 60.2M | 230 Mo
 
 ### Fine-tuning
 **Optimizer**: SGD with a momentum of 0.9 <br>
 **Batch size**: 32 <br>
 **Max epoch**: 100
+
+#### ResNet 18
+| Learning rate | Epochs (best) | Test loss | Test acc |
+| --- | --- | ---  | --- |
+| 1e-6 | 100 (84)  |  0.595  |  71.64%  |
+| 5e-6 | 100 (100) |  0.434  |  82.71%  |
+| 1e-5 | 100 (63)  |  0.425  |  81.03%  |
+| 5e-5 | 100 (21)  |  0.395  |  83.23%  |
+| 1e-4 | 25 (5)    |**0.380**|**84.55%**|
+| 5e-4 | 10 (1)    |  0.421  |  84.02%  |
+
+#### ResNet 34
+
+| Learning rate | Epochs (best) | Test loss | Test acc |
+| --- | --- | --- | --- |
+| 1e-6 | 100 (95) |  0.527  |  79.07%  |
+| 5e-6 | 100 (41) |**0.477**|**86.02%**|
+| 1e-5 | 75 ()       | /       | /        |
+| /    | /        | /       | /        |
+
+#### ResNet 50
+
+| Learning rate | Epochs (best) | Test loss | Test acc |
+| --- | --- | --- | --- |
+| 1e-6 | 100 (xx) | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+
+#### ResNet 101
+
+| Learning rate | Epochs (best) | Test loss | Test acc |
+| --- | --- | --- | --- |
+| 1e-6 | 100 (xx) | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+
+#### ResNet 152
+
+| Learning rate | Epochs (best) | Test loss | Test acc |
+| --- | --- | --- | --- |
+| 1e-6 | 100 (xx) | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+| /    | /        | /       | /        |
+
+#### Best learning
 
 | ResNet | Learning rate | Best epoch | Test loss | Test acc |
 | --- | --- | --- | --- | --- |
