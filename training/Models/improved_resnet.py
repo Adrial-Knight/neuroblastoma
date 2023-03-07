@@ -34,5 +34,8 @@ class ImprovedResNet(nn.Module):
         for param in self.resnet.fc.parameters():
             param.requires_grad = True
 
+    def forward(self, x):
+        return self.resnet(x)
+
     def get_trainable_parameters(self):
         return filter(lambda p: p.requires_grad, self.parameters())
