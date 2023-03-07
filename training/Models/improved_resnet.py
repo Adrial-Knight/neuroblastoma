@@ -18,19 +18,11 @@ class ImprovedResNet(nn.Module):
         else:
             raise ValueError(f"ResNet version {resnet_version} does not exist.")
 
-        self.resnet.fc = nn.Sequential()
-        self.fc = nn.Sequential(
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.LeakyReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(in_features=256, out_features=1, bias=True),
+        resnet_out = 512 if resnet_version <= 34 else 2048
+        self.resnet.fc = nn.Sequential(
+            nn.Linear(in_features=resnet_out, out_features=1, bias=True),
             nn.Sigmoid()
         )
-
-    def forward(self, x):
-        x = self.resnet(x)
-        x = self.fc(x)
-        return x
 
     def fine_tune(self):
         for param in self.parameters():
@@ -39,7 +31,7 @@ class ImprovedResNet(nn.Module):
         for param in self.resnet.parameters():
             param.requires_grad = False
 
-        for param in self.fc.parameters():
+        for param in self.resnet.fc.parameters():
             param.requires_grad = True
 
     def get_trainable_parameters(self):
