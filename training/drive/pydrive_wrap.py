@@ -1,5 +1,6 @@
 import json
 import io
+import numpy as np
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -59,6 +60,7 @@ def save_dic_to_drive(drive, data, fname, folder_id):
         file = drive.CreateFile(file_metadata)
     file.content = io.BytesIO(json.dumps(to_json_compatible(data)).encode())
     file.Upload()
+    return file["id"]
 
 def to_json_compatible(data):
     if isinstance(data, np.ndarray):
@@ -79,3 +81,19 @@ def from_json_compatible(data):
         return {k: from_json_compatible(v) for k, v in data.items()}
     else:
         return data
+
+def upload_fig(drive, folder_id, fig, fname):
+    fullname = f"{fname}.pdf"
+    tmp_local = f"/tmp/{fullname}"
+    fig.savefig(tmp_local)
+
+    query = f"'{folder_id}' in parents and title = '{fullname}' and trashed = false"
+    file_list = drive.ListFile({'q': query}).GetList()
+
+    if len(file_list) == 1:  # Fichier déjà existant => mise à jour
+        file = file_list[0]
+    else: # Aucun fichier => création
+        file = drive.CreateFile({'title': fullname, 'parents': [{'id': folder_id}]})
+    file.SetContentFile(tmp_local)
+    file.Upload()
+    return file["id"]
