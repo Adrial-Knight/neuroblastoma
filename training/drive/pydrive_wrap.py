@@ -41,6 +41,11 @@ def get_id_from_path(drive, path):
 
     return folder_id
 
+def get_id_from_folder_id(drive, folder_id, fname):
+    query = f"'{folder_id}' in parents and title='{fname}' and trashed=false"
+    file = drive.ListFile({'q': query}).GetList()[0]
+    return file["id"]
+
 def load_json_from_id(drive, id):
     if not id: return None
     file = drive.CreateFile({'id': id})

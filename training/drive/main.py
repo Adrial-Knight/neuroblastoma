@@ -2,6 +2,7 @@ import pydrive_wrap as Gdrive
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+from time import time
 
 SUMMARY_FOLDER = "__Summary__"
 DATA_JSON = "data.json"
@@ -29,21 +30,19 @@ def update_json_tab(drive, tab_path: str):
     summary_folder_id = cell_ids.pop(index_of_summary)
 
     tab = {}
-    for cell in cell_names:
-        cell_path = f"{tab_path}/{cell}"
-        details = load_cell_attempts(drive, cell_path)
+    for cell, cell_id in zip(cell_names, cell_ids):
+        details = load_cell_attempts(drive, cell_id)
         tab[cell] = details
     id = Gdrive.save_dic_to_drive(drive, tab, DATA_JSON, summary_folder_id)
     return id
 
-def load_cell_attempts(drive, cell_path):
-    cell_id = Gdrive.get_id_from_path(drive, cell_path)
+def load_cell_attempts(drive cell_id):
     samples_title, samples_id = Gdrive.list_from_id(drive, cell_id)
     N = len(samples_title)
     details_list = []
     E = 0  # maximum of epoch in a tab-cell
-    for sample in samples_title:
-        id = Gdrive.get_id_from_path(drive, f"{cell_path}/{sample}/details.json")
+    for sample, folder_id in zip(samples_title, samples_id):
+        id = Gdrive.get_id_from_folder_id(drive, folder_id, "details.json")
         details = Gdrive.load_json_from_id(drive, id)
         details_list.append(details)
         if E < details["learning"]["epoch"]:
