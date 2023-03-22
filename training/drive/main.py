@@ -4,11 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 SUMMARY_FOLDER = "__Summary__"
+TMP_FOLDER = "tmp"
 DATA_JSON = "data.json"
 
 def main():
     drive = Gdrive.identification()
-    tab_path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet18_SGD"
+    tab_path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet34_SGD"
     update = True
     if update:
         id = update_json_tab(drive, tab_path)
@@ -21,6 +22,13 @@ def main():
         folder_id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}")
         Gdrive.upload_fig(drive, folder_id, fig, metric)
 
+def main_local():
+    with open('/home/pierre/Downloads/data.json', 'r') as file:
+        data = json.load(file)
+    for metric in ["loss", "accu"]:
+        merge_cell_metric(data, metric)
+    plt.show()
+
 def update_json_tab(drive, tab_path: str):
     tab_id = Gdrive.get_id_from_path(drive, tab_path)
     cell_names, cell_ids = Gdrive.list_from_id(drive, tab_id)
@@ -30,16 +38,21 @@ def update_json_tab(drive, tab_path: str):
 
     tab = {}
     for cell, cell_id in zip(cell_names, cell_ids):
-        details = load_cell_attempts(drive, cell_id)
-        tab[cell] = details
-        print(f"{cell}: {len(details['best_epoch_loss'])} exp")
+        if details:= load_cell_attempts(drive, cell_id):
+            tab[cell] = details
+            print(f"{cell}: {len(details['best_epoch_loss'])} exp")
     id = Gdrive.save_dic_to_drive(drive, tab, DATA_JSON, summary_folder_id)
-    print("JSON file successfully update.")
+    print("JSON file successfully updated.")
     return id
 
 def load_cell_attempts(drive, cell_id):
     samples_title, samples_id = Gdrive.list_from_id(drive, cell_id)
+    if TMP_FOLDER in samples_title:
+        idx_tmp = samples_title.index(TMP_FOLDER)
+        samples_title.pop(idx_tmp)
+        samples_id.pop(idx_tmp)
     N = len(samples_title)
+    if N == 0: return None
     details_list = []
     E = 0  # maximum of epoch in a tab-cell
     for sample, folder_id in zip(samples_title, samples_id):
@@ -100,7 +113,7 @@ def merge_cell_metric(data, metric):
     for cell_id, cell in data.items():
         coord = cell_map[cell_id]
         axs[coord].plot(cell[f"best_epoch_{metric}"], cell[f"best_{metric}"],
-                        marker="s", linestyle="None", markersize=3, color='orange')
+                        marker=".", linestyle="None", markersize=3, color='red')
 
     for j, b in enumerate(batch):
         axs[(0, j)].set_title(f"batch={int(b)}")
@@ -112,3 +125,4 @@ def merge_cell_metric(data, metric):
 
 if __name__ == "__main__":
     main()
+    # main_local()
