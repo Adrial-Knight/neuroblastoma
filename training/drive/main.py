@@ -7,9 +7,8 @@ SUMMARY_FOLDER = "__Summary__"
 TMP_FOLDER = "tmp"
 DATA_JSON = "data.json"
 
-def main():
+def summarize_tab(tab_path):
     drive = Gdrive.identification()
-    tab_path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet34_SGD"
     update = True
     if update:
         id = update_json_tab(drive, tab_path)
@@ -17,17 +16,55 @@ def main():
         id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}/{DATA_JSON}")
     data = Gdrive.load_json_from_id(drive, id)
     data = Gdrive.from_json_compatible(data)
+    print_best_metric(data)
     for metric in ["loss", "accu"]:
         fig = merge_cell_metric(data, metric)
         folder_id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}")
         Gdrive.upload_fig(drive, folder_id, fig, metric)
 
-def main_local():
+def summarize_tab_local():
     with open('/home/pierre/Downloads/data.json', 'r') as file:
         data = json.load(file)
     for metric in ["loss", "accu"]:
         merge_cell_metric(data, metric)
     plt.show()
+
+def summarize_cell(cell_path):
+    drive = Gdrive.identification()
+    tab_path = "/".join(cell_path.split("/")[:-1])
+    folder_id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}")
+    cell_id = Gdrive.get_id_from_path(drive, cell_path)
+    cell = load_cell_attempts(drive, cell_id)
+    for metric in ["accu", "loss"]:
+        fig, ax = plt.subplots(1, 1)
+        for dataset in ["train", "valid"]:
+            key   = f"{dataset}_{metric}"
+            mean  = np.nanmean(cell[key], axis=0)
+            sigma = np.sqrt(np.nanvar(cell[key], axis=0))
+
+            N = len(mean)
+            x = np.arange(N)
+
+            ax.plot(mean, linestyle='-', label=dataset)
+            ax.fill_between(x, mean + sigma, mean - sigma, alpha=0.1, label='_nolegend_')
+            ax.grid(True, color='gray', linewidth=0.5)
+            if metric == "accu":
+                ax.set_ylim([0.5, 1])
+                ax.set_ylabel("Accuracy")
+            else:
+                ax.set_ylim([0, 1])
+                ax.set_ylabel("Binary Cross Entropy")
+            ax.set_xlim([0, N])
+
+        ax.plot(cell[f"best_epoch_{metric}"], cell[f"best_{metric}"],
+                marker=".", linestyle="None", markersize=3, color='red')
+        ax.legend(["train", "valid", "best"])
+        ax.set_xlabel("Epochs")
+        Gdrive.upload_fig(drive, folder_id, fig, cell_path.split("/")[-1] + f"_{metric}")
+        ax.set_title(" ".join(cell_path.split("/")[-2].split("_")) + " (" +
+                     ", ".join(cell_path.split("/")[-1].split("_")) + ")")
+    plt.show()
+
 
 def update_json_tab(drive, tab_path: str):
     tab_id = Gdrive.get_id_from_path(drive, tab_path)
@@ -38,12 +75,22 @@ def update_json_tab(drive, tab_path: str):
 
     tab = {}
     for cell, cell_id in zip(cell_names, cell_ids):
+        print(f"{cell}: ", end="", flush=True)
         if details:= load_cell_attempts(drive, cell_id):
             tab[cell] = details
-            print(f"{cell}: {len(details['best_epoch_loss'])} exp")
+            print(f"{len(details['best_epoch_loss'])} exp")
     id = Gdrive.save_dic_to_drive(drive, tab, DATA_JSON, summary_folder_id)
     print("JSON file successfully updated.")
     return id
+
+def print_best_metric(data):
+    best_accu = 0
+    best_loss = 100
+    for key, val in data.items():
+        best_accu = max(best_accu, np.max(val["best_accu"]))
+        best_loss = min(best_loss, np.min(val["best_loss"]))
+    print(f"Best accu: {best_accu}")
+    print(f"Best loss: {best_loss}")
 
 def load_cell_attempts(drive, cell_id):
     samples_title, samples_id = Gdrive.list_from_id(drive, cell_id)
@@ -52,7 +99,9 @@ def load_cell_attempts(drive, cell_id):
         samples_title.pop(idx_tmp)
         samples_id.pop(idx_tmp)
     N = len(samples_title)
-    if N == 0: return None
+    if N == 0:
+        print("0 exp")
+        return None
     details_list = []
     E = 0  # maximum of epoch in a tab-cell
     for sample, folder_id in zip(samples_title, samples_id):
@@ -124,5 +173,8 @@ def merge_cell_metric(data, metric):
 
 
 if __name__ == "__main__":
-    main()
-    # main_local()
+    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet50_SGD"
+    summarize_tab(path)
+    # summarize_tab_local()
+
+    # summarize_cell(f"{path}/5e-06_128")
