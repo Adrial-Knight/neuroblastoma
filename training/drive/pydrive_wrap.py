@@ -10,6 +10,12 @@ def identification():
     gauth.LocalWebserverAuth()
     return GoogleDrive(gauth)
 
+def get_owner_from_file_id(drive, file_id):
+    file = drive.CreateFile({'id': file_id})
+    for user in file.GetPermissions():
+        if user["role"] == "owner":
+            return user["name"]
+
 def list_from_id(drive, id):
     query = f"'{id}' in parents and trashed=false"
     file_list = drive.ListFile({'q': query}).GetList()
