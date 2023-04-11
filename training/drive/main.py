@@ -92,6 +92,18 @@ def print_best_metric(data):
     print(f"Best accu: {best_accu}")
     print(f"Best loss: {best_loss}")
 
+def find_best_loss(data1, data2):
+    merge = np.maximum(data1, data2)
+    epoch = np.argmin(merge)
+    loss  = max(data1[epoch], data2[epoch])
+    return epoch, loss
+
+def find_best_accu(data1, data2):
+    merge = np.minimum(data1, data2)
+    epoch = np.argmax(merge)
+    accu  = min(data1[epoch], data2[epoch])
+    return epoch, accu
+
 def load_cell_attempts(drive, cell_id):
     samples_title, samples_id = Gdrive.list_from_id(drive, cell_id)
     if TMP_FOLDER in samples_title:
@@ -116,10 +128,12 @@ def load_cell_attempts(drive, cell_id):
             "train_loss": np.zeros((N, E)), "train_accu": np.zeros((N, E)),
             "valid_loss": np.zeros((N, E)), "valid_accu": np.zeros((N, E))}
     for i, details in enumerate(details_list):
-        cell["best_epoch_loss"][i] = details["best"]["epoch_loss"]
-        cell["best_epoch_accu"][i] = details["best"]["epoch_accu"]
-        cell["best_loss"][i] = details["best"]["loss"]
-        cell["best_accu"][i] = details["best"]["accu"]
+        epoch_l, loss = find_best_loss(details["train_loss"], details["valid_loss"])
+        epoch_a, accu = find_best_accu(details["train_accu"], details["valid_accu"])
+        cell["best_epoch_loss"][i] = epoch_l
+        cell["best_epoch_accu"][i] = epoch_a
+        cell["best_loss"][i] = loss
+        cell["best_accu"][i] = accu
         for line in ["train_loss", "train_accu", "valid_loss", "valid_accu"]:
             cell[line][i, :] = np.pad(details[line], (0, E-len(details[line])), constant_values=np.nan)
     return cell
@@ -173,7 +187,7 @@ def merge_cell_metric(data, metric):
 
 
 if __name__ == "__main__":
-    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet50_SGD"
+    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/VGG11_SGD"
     summarize_tab(path)
     # summarize_tab_local()
 
