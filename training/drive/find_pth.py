@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def main():
     drive = Gdrive.identification()
     root = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
-    folder_to_skip = ["LeakTest", "__Summary__", "tmp"]
+    folder_to_skip = ["LeakTest", "__Summary__", "tmp", "__Results__"]
     root_id = Gdrive.get_id_from_path(drive, root)
     backbones, backbones_id = Gdrive.list_from_id(drive, root_id)
 

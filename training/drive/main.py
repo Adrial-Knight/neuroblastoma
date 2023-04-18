@@ -187,7 +187,7 @@ def merge_cell_metric(data, metric):
 
 
 if __name__ == "__main__":
-    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/VGG11_SGD"
+    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet101_SGD"
     summarize_tab(path)
     # summarize_tab_local()
 

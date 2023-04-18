@@ -80,8 +80,7 @@ def to_json_compatible(data):
         return {k: to_json_compatible(v) for k, v in data.items()}
     elif isinstance(data, list):
         return [to_json_compatible(v) for v in data]
-    elif np.isnan(data):
-        return "NaN"
+    # elif np.isnan(data): return "NaN"
     else:
         return data
 
