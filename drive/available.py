@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ACCOUNTS = ["Un Kiwi", "Adrial-Knight", "P.J.M.", "P.M. matmeca", "P.M."] \
-         + [f"P.C. {d:02d}" for d in range(1, 19)]
+         + [f"P.C. {d:02d}" for d in range(1, 26)]
 
 HISTORIC = "./historic.txt"
 

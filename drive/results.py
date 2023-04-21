@@ -92,21 +92,24 @@ def extract_result(drive, backup_path):
     return data, results_id
 
 def plot_accu_loss(names, accuracy, loss):
+    fontsize = 14
     if max(accuracy) <= 1:
         accuracy = [round(a * 100, 2) for a in accuracy]
 
     # Template
     bar_width = 0.4
-    fig, ax1 = plt.subplots(num="Accuracy and Loss Results", figsize=(12, 6))
+    fig, ax1 = plt.subplots(num="Accuracy and Loss Results", figsize=(14, 6))
     ax1.bar(names, accuracy, color='#1f77b4', width=bar_width)
     ax1.set_xticks(np.arange(len(names)) + bar_width/2)
+    ax1.tick_params(axis='both', labelsize=fontsize)
     ax2 = ax1.twinx()
     ax2.bar([i+bar_width for i in range(len(names))], loss, color='#ff7f0e', width=bar_width)
+    ax2.tick_params(axis='both', labelsize=fontsize)
 
     # Add values
     for i, (a, l) in enumerate(zip(accuracy, loss)):
-        ax1.text(i, a + 0.5, f"{a:.1f}%", color='black', ha='center')
-        ax2.text(i+bar_width, l+0.005, f"{l:.3f}", color='black', ha='center')
+        ax1.text(i, a + 0.5, f"{a:.1f}%", color='black', ha='center', fontsize=fontsize)
+        ax2.text(i+bar_width, l+0.005, f"{l:.3f}", color='black', ha='center', fontsize=fontsize)
 
     # Add red borders between different network families (eg: ResNet | VGG)
     for i in range(1, len(names)):
@@ -119,9 +122,9 @@ def plot_accu_loss(names, accuracy, loss):
     ax2.set_ylim([0, 1])
 
     # Labels
-    ax1.set_xlabel("Backbone")
-    ax1.set_ylabel("Accuracy (%)")
-    ax2.set_ylabel("Loss")
+    ax1.set_xlabel("Backbone", fontsize=fontsize)
+    ax1.set_ylabel("Accuracy (%)", fontsize=fontsize)
+    ax2.set_ylabel("Loss", fontsize=fontsize)
 
     # Modern look
     ax1.set_facecolor('#f0f0f0')

@@ -149,11 +149,13 @@ def map_cells_to_coord(data):
     return cell_map, (lr, batch)
 
 def merge_cell_metric(data, metric):
+    fontsize = 14
     if metric not in ["accu", "loss"]:
         raise ValueError("La variable 'metric' ne peut prendre que les valeurs 'accu' ou 'loss'.")
     cell_map, (lr, batch) = map_cells_to_coord(data)
-    h, w = len(lr), len(batch)
+    h, w = max(2, len(lr)), max(2, len(batch))
     fig, axs = plt.subplots(h, w, figsize=(16, 16))
+    plt.rcParams.update({'font.size': fontsize})
     for cell_id, cell in data.items():
         coord = cell_map[cell_id]
         for dataset in ["train", "valid"]:
@@ -181,13 +183,15 @@ def merge_cell_metric(data, metric):
     for j, b in enumerate(batch):
         axs[(0, j)].set_title(f"batch={int(b)}")
     for i, l in enumerate(lr):
-        axs[(i, 0)].set_ylabel(f"lr={float(l)}", fontsize='large', fontstyle='normal', rotation=0)
+        axs[(i, 0)].set_ylabel(f"lr={float(l)}", fontsize=fontsize+2, fontstyle='normal', rotation=0)
         axs[(i, 0)].yaxis.set_label_coords(-0.3, 0.45)
+    plt.tight_layout()
+
     return fig
 
 
 if __name__ == "__main__":
-    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/ResNet101_SGD"
+    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/VGG19_SGD"
     summarize_tab(path)
     # summarize_tab_local()
 

@@ -1,0 +1,6 @@
+*.jpg
+*.txt
+*.json
+**/__pycache__
+database
+doc

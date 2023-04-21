@@ -226,9 +226,9 @@ def split_files(db, prop=[.7, .15, .15], class_names=["PD", "D"]):
         parts, _ = optimize_IFPO(family_infos, prop, mu_list, eps_list)
         partitions[cname] = parts
 
-    datasets = {"training":   {"files": {}, "nb_im": {}},
-                "validation": {"files": {}, "nb_im": {}},
-                "test":       {"files": {}, "nb_im": {}}}
+    datasets = {"train": {"files": {}, "nb_im": {}},
+                "valid": {"files": {}, "nb_im": {}},
+                "test":  {"files": {}, "nb_im": {}}}
     for dataset_id, dataset in enumerate(datasets.values()):
         for cname, parts in partitions.items():
             patterns = parts[dataset_id]["category"]
@@ -298,9 +298,80 @@ def augment_and_balance(root: str, datasets: json):
                     fpath = f"{new_class_path}/{base_name}_{id}.jpg"
                     Image.fromarray(im).save(fpath, format="JPEG", quality=100)
 
-def test(db):
+def print_train_mean_deviation(root: str):
+    R_sum, G_sum, B_sum, num_pixels = 0, 0, 0, 0
+    labels = os.listdir(os.path.join(root, 'train'))
+
+    for label in labels:
+        for img_file in os.listdir(os.path.join(root, f"train/{label}")):
+            img_path = os.path.join(root, f"train/{label}", img_file)
+            img = np.asarray(Image.open(img_path))
+
+            R = img[:,:,0]
+            G = img[:,:,1]
+            B = img[:,:,2]
+
+            R_sum += np.sum(R, dtype=np.uint64)
+            G_sum += np.sum(G, dtype=np.uint64)
+            B_sum += np.sum(B, dtype=np.uint64)
+
+            num_pixels += img.shape[0] * img.shape[1]
+
+    R_mean = R_sum / num_pixels
+    G_mean = G_sum / num_pixels
+    B_mean = B_sum / num_pixels
+
+    # Vérifier s'il y a eu un overflow dans le calcul de la somme des pixels
+    if R_sum > np.iinfo(np.uint64).max or G_sum > np.iinfo(np.uint64).max or B_sum > np.iinfo(np.uint64).max:
+        print("Overflow détecté lors du calcul de la somme des pixels.")
+
+    R_var_sum, G_var_sum, B_var_sum = 0, 0, 0
+    for label in labels:
+        for img_file in os.listdir(os.path.join(root, f"train/{label}")):
+            img_path = os.path.join(root, f"train/{label}", img_file)
+            img = np.asarray(Image.open(img_path))
+
+            R = img[:,:,0]
+            G = img[:,:,1]
+            B = img[:,:,2]
+
+            R_var_sum += np.sum((R - R_mean) ** 2, dtype=np.float64)
+            G_var_sum += np.sum((G - G_mean) ** 2, dtype=np.float64)
+            B_var_sum += np.sum((B - B_mean) ** 2, dtype=np.float64)
+
+    R_std = np.sqrt(R_var_sum / num_pixels)
+    G_std = np.sqrt(G_var_sum / num_pixels)
+    B_std = np.sqrt(B_var_sum / num_pixels)
+
+    print(f"{(R_mean/255, G_mean/255, B_mean/255)}")
+    print(f"{(R_std/255, G_std/255, B_std/255)}")
+
+def force_augmentation(old_root: str, augmentation: dict):
+    new_root = f"{old_root}_FA"
+    os.makedirs(new_root, exist_ok=True)
+    datasets = os.listdir(old_root)
+    for dataset in datasets:
+        old_dataset_root = f"{old_root}/{dataset}"
+        new_dataset_root = f"{new_root}/{dataset}"
+        os.makedirs(new_dataset_root, exist_ok=True)
+        labels = os.listdir(old_dataset_root)
+        for label in labels:
+            if label in augmentation:
+                old_class_path = f"{old_dataset_root}/{label}"
+                new_class_path = f"{new_dataset_root}/{label}"
+                os.makedirs(new_class_path, exist_ok=True)
+                file_names = os.listdir(old_class_path)
+                for file_name in file_names:
+                    img_path = f"{old_class_path}/{file_name}"
+                    im = plt.imread(img_path)
+                    im_list, id_list = geometric_transform(im, augmentation[label])
+                    base_name = file_name.split(".")[0]
+                    for im, id in zip(im_list, id_list):
+                        fpath = f"{new_class_path}/{base_name}_{id}.jpg"
+                        Image.fromarray(im).save(fpath, format="JPEG", quality=100)
+
+def test(db, prop=[.7, .15, .15]):
     class_infos = {}
-    prop = [.7, .15, .15]
     for cname in ["PD", "D"]:
         family_infos = get_families(path=f"{db}/{cname}")
         compute_proportions(family_infos)
@@ -338,8 +409,16 @@ def test(db):
 
 
 if __name__ == "__main__":
-    db="database/224x224"
-    # test(db)
-    datasets = split_files(db)
+    # db="database/224x224"
+    db="database/250x250"
+    proportions = [.75, .125, .125]
+    # test(db, prop=proportions)
+    datasets = split_files(db, prop=proportions)
     new_db = assign_files(db, datasets)
     augment_and_balance(new_db, datasets)
+    print_train_mean_deviation(new_db)
+    # print_train_mean_deviation(db)
+
+    # dico_augmentation = {"PD": 3, "D": 7}
+    # force_augmentation(db, dico_augmentation)
+    # print_train_mean_deviation(f"{db}_FA")
