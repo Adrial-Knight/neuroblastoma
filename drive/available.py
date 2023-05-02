@@ -1,7 +1,8 @@
 from pathlib import Path
+import sys
 
 ACCOUNTS = ["Un Kiwi", "Adrial-Knight", "P.J.M.", "P.M. matmeca", "P.M."] \
-         + [f"P.C. {d:02d}" for d in range(1, 26)]
+         + [f"P.C. {d:02d}" for d in range(1, 36)]
 
 HISTORIC = "./historic.txt"
 
@@ -16,7 +17,9 @@ def check(historic):
     return True
 
 def get_unused(ACCOUNTS, historic, nb=3):
-    if len(ACCOUNTS) < nb+1: exit(3)
+    if len(ACCOUNTS) < nb+1:
+        return ACCOUNTS
+    historic[:0] = ACCOUNTS
     while len(ACCOUNTS) != nb:
         account = historic.pop()
         historic = list(filter((account).__ne__, historic))
@@ -28,5 +31,11 @@ if __name__ == "__main__":
     if not check(historic):
         exit(2)
     else:
-        unused = get_unused(ACCOUNTS, historic, nb=1)
+        try:
+            if len(sys.argv) == 2:
+                nb = int(sys.argv[1])
+            else: raise ValueError
+        except ValueError:
+            nb = 1
+        unused = get_unused(ACCOUNTS, historic, nb)
         print(f"{unused=}")
