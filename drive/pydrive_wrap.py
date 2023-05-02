@@ -61,6 +61,11 @@ def load_json_from_id(drive, id):
         content = file.GetContentString()
         return json.loads(content)
 
+def download_file(drive, id, local_path):
+    file = drive.CreateFile({'id': id})
+    file.FetchMetadata()
+    file.GetContentFile(local_path)
+
 def save_dic_to_drive(drive, data, fname, folder_id):
     query = f"'{folder_id}' in parents and trashed = false and title = '{fname}'"
     files = drive.ListFile({'q': query}).GetList()
