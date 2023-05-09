@@ -1,6 +1,9 @@
 *.jpg
+*.png
 *.txt
 *.json
 **/__pycache__
+**/.ipynb_checkpoints
 database
 doc
+backup

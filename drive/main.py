@@ -1,17 +1,21 @@
-import pydrive_wrap as Gdrive
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import tqdm
+
+try:
+    from . import pydrive_wrap as Gdrive
+except ImportError:
+    import pydrive_wrap as Gdrive
 
 SUMMARY_FOLDER = "__Summary__"
 TMP_FOLDER = "tmp"
 DATA_JSON = "data.json"
 
-def summarize_tab(tab_path):
-    drive = Gdrive.identification()
+def summarize_tab(drive, tab_path):
     update = True
     if update:
-        id = update_json_tab(drive, tab_path)
+        _, id = update_json_tab(drive, tab_path)
     else:
         id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}/{DATA_JSON}")
     data = Gdrive.load_json_from_id(drive, id)
@@ -74,14 +78,11 @@ def update_json_tab(drive, tab_path: str):
     summary_folder_id = cell_ids.pop(index_of_summary)
 
     tab = {}
-    for cell, cell_id in zip(cell_names, cell_ids):
-        print(f"{cell}: ", end="", flush=True)
+    for cell, cell_id in tqdm.tqdm(zip(cell_names, cell_ids), total=len(cell_names)):
         if details:= load_cell_attempts(drive, cell_id):
             tab[cell] = details
-            print(f"{len(details['best_epoch_loss'])} exp")
     id = Gdrive.save_dic_to_drive(drive, tab, DATA_JSON, summary_folder_id)
-    print("JSON file successfully updated.")
-    return id
+    return tab, id
 
 def print_best_metric(data):
     best_accu = 0
@@ -112,8 +113,9 @@ def load_cell_attempts(drive, cell_id):
         samples_id.pop(idx_tmp)
     N = len(samples_title)
     if N == 0:
-        print("0 exp")
         return None
+    # ordering samples
+    samples_title, samples_id = zip(*sorted(zip(samples_title, samples_id)))
     details_list = []
     E = 0  # maximum of epoch in a tab-cell
     for sample, folder_id in zip(samples_title, samples_id):
@@ -191,8 +193,11 @@ def merge_cell_metric(data, metric):
 
 
 if __name__ == "__main__":
-    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup/VGG19_SGD"
-    summarize_tab(path)
-    # summarize_tab_local()
-
-    # summarize_cell(f"{path}/5e-06_128")
+    path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
+    backbones = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "VGG11", "VGG13", "VGG16", "VGG19"]
+    backbones = ["Inception3_SGD_CNL2"]
+    drive = Gdrive.identification()
+    for b in backbones:
+        print(b)
+        summarize_tab(drive, f"{path}/{b}")
+        print("", end="\n")

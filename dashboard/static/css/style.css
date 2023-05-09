@@ -1,0 +1,23 @@
+.tab {
+    display: none;
+}
+
+.tab-default {
+    display: block;
+}
+
+.fullscreen-image {
+    width: 90%;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+}
+
+.center-image {
+    display: block;
+    margin: 0 auto;
+}
+
+.center-text {
+    text-align: center;
+}
