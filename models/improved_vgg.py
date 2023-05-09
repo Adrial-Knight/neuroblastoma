@@ -1,8 +1,9 @@
 from torch import nn
 from torchvision.models.vgg import vgg11, VGG11_Weights, vgg13, VGG13_Weights, vgg16, VGG16_Weights, vgg19, VGG19_Weights
+from classifier import get_classifier
 
 class ImprovedVGG(nn.Module):
-    def __init__(self, version=16):
+    def __init__(self, kind:str, version=16):
         super(ImprovedVGG, self).__init__()
 
         if version == 11:
@@ -16,14 +17,13 @@ class ImprovedVGG(nn.Module):
         else:
             raise ValueError(f"VGG version {version} does not exist.")
 
-        self.vgg.classifier[6] = nn.Linear(in_features=4096, out_features=1, bias=True)
-        self.vgg.classifier.append(nn.Sigmoid())
+        self.vgg.classifier[6] = get_classifier(kind, in_features=4096)
 
     def fine_tune(self):
         for param in self.parameters():
             param.requires_grad = False
 
-        for param in self.classifier[6].parameters():
+        for param in self.vgg.classifier[6].parameters():
             param.requires_grad = True
 
     def forward(self, x):

@@ -1,8 +1,9 @@
 from torch import nn
 from torchvision import models
+from classifier import get_classifier
 
 class ImprovedResNet(nn.Module):
-    def __init__(self, resnet_version=18):
+    def __init__(self, kind:str, resnet_version=18):
         super(ImprovedResNet, self).__init__()
 
         if resnet_version == 18:
@@ -18,11 +19,8 @@ class ImprovedResNet(nn.Module):
         else:
             raise ValueError(f"ResNet version {resnet_version} does not exist.")
 
-        resnet_out = 512 if resnet_version <= 34 else 2048
-        self.resnet.fc = nn.Sequential(
-            nn.Linear(in_features=resnet_out, out_features=1, bias=True),
-            nn.Sigmoid()
-        )
+        in_features = 512 if resnet_version <= 34 else 2048
+        self.resnet.fc = get_classifier(kind, in_features)
 
     def fine_tune(self):
         for param in self.parameters():
