@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import tqdm
 
 try:
-    from . import pydrive_wrap as Gdrive
+    from . import goolgeapiclient_wrap as Gdrive
 except ImportError:
-    import pydrive_wrap as Gdrive
+    import goolgeapiclient_wrap as Gdrive
 
 SUMMARY_FOLDER = "__Summary__"
 TMP_FOLDER = "tmp"

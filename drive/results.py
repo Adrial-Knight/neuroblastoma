@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pydrive_wrap as Gdrive
+import goolgeapiclient_wrap as Gdrive
+import re
 
 SUMMARY_FOLDER = "__Summary__"
 RESULTS_FOLDER = "__Results__"
@@ -12,10 +13,22 @@ def main(path, pattern):
     names = filter_list_by_pattern(data, pattern)
     accu  = [data[name]["accu"]["best"] for name in names]
     loss  = [data[name]["loss"]["best"] for name in names]
+    print(names)
     names = [name.split("_")[0] for name in names]
+    # names = clean_names(names, pattern)
+    print(names)
     fig = plot_accu_loss(names, accu, loss)
     Gdrive.upload_fig(drive, folder_id, fig, pattern.strip("*").strip("_"))
     plt.show()
+
+def clean_names(names, pattern):
+    names_ = []
+    for name in names:
+        match = re.match(pattern + r'(_\w+)?', name)
+        if match:
+            names_.append(match.group().split("_SGD")[0])
+    return names_
+
 
 def filter_list_by_pattern(lst, pattern):
     if "*" not in pattern:
@@ -53,8 +66,6 @@ def extract_result(drive, backup_path):
         data = Gdrive.load_json_from_id(drive, data_id)
         Gdrive.to_json_compatible(data)
 
-        best_loss = 1000
-        best_accu = 0
         result = {"loss":
                     {"best": 1000, "epoch": -1, "lr": -1, "batch": -1, "exp": -1},
                   "accu":
@@ -73,7 +84,7 @@ def extract_result(drive, backup_path):
                 result["loss"]["exp"] = exp_l + 1
             if accu > result["accu"]["best"]:
                 result["accu"]["best"]  = accu
-                result["accu"]["epoch"] = val["best_epoch_loss"][exp_a]
+                result["accu"]["epoch"] = val["best_epoch_accu"][exp_a]
                 result["accu"]["lr"] = lr
                 result["accu"]["batch"] = batch
                 result["accu"]["exp"] = exp_a + 1
@@ -82,7 +93,10 @@ def extract_result(drive, backup_path):
     data = {}
     for title, id in zip(network_titles, network_ids):
         if title in SKIP_FOLDER: continue
-        result = extract_result_network(id)
+        try:
+            result = extract_result_network(id)
+        except IndexError:
+            continue
         data[title] = result
         print(f"{title}")
         print(f"\tLoss={result['loss']['best']:.3f}  (epoch: {int(result['loss']['epoch']):2d}) | (lr, batch)=({result['loss']['lr']}, {result['loss']['batch']:3d}) at exp {result['loss']['exp']}")
@@ -98,7 +112,7 @@ def plot_accu_loss(names, accuracy, loss):
 
     # Template
     bar_width = 0.4
-    fig, ax1 = plt.subplots(num="Accuracy and Loss Results", figsize=(14, 6))
+    fig, ax1 = plt.subplots(num="Accuracy and Loss Results", figsize=(15, 6))
     ax1.bar(names, accuracy, color='#1f77b4', width=bar_width)
     ax1.set_xticks(np.arange(len(names)) + bar_width/2)
     ax1.tick_params(axis='both', labelsize=fontsize)
@@ -138,5 +152,6 @@ def plot_accu_loss(names, accuracy, loss):
 
 if __name__ == "__main__":
     path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
+    # pattern = "Inception3*"
     pattern = "*_SGD"
     main(path, pattern)

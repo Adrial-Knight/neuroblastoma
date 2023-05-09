@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 try:
-    from . import pydrive_wrap as Gdrive
+    from . import goolgeapiclient_wrap as Gdrive
 except ImportError:
-    import pydrive_wrap as Gdrive
+    import goolgeapiclient_wrap as Gdrive
 
 SKIP_FOLDER = ["__Summary__"]
 
@@ -59,10 +59,9 @@ def display_grid(grid, model):
         for i, lr in enumerate(y_labels):
             value = heatmap[i, j]
             if value < 6: color = "black"
-            elif value < 11: color = "white"
-            else: color = "red"
+            else: color = "white"
             if not (str(lr), str(batch)) in grid.keys():
-                color = "red"
+                continue
             plt.text(j, i, str(int(value)), color=color, fontweight="bold", ha="center", va="center")
     return fig
 

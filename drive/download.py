@@ -1,4 +1,4 @@
-import pydrive_wrap as Gdrive
+import goolgeapiclient_wrap as Gdrive
 import os
 from tqdm import tqdm
 

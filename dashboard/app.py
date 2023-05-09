@@ -7,7 +7,7 @@ from flask import Flask, request, send_file, render_template, url_for, redirect,
 import sys
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
-import drive.pydrive_wrap as Gdrive
+import drive.goolgeapiclient_wrap as Gdrive
 import drive.grid as GridSearch
 import drive.main as GridMetric
 
