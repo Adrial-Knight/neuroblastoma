@@ -2,6 +2,7 @@ import os
 import time
 import json
 import matplotlib.pyplot as plt
+from PIL import Image
 from flask import Flask, request, send_file, render_template, url_for, redirect, session
 
 import sys
@@ -42,11 +43,13 @@ def display_static():
     gridloss = f"fig/{model}_lossGridMetrics.png"
     gridaccu = f"fig/{model}_accuGridMetrics.png"
 
-    if not os.path.exists(f"static/{gridsearch}") \
-    or not os.path.exists(f"static/{gridloss}")   \
-    or not os.path.exists(f"static/{gridaccu}"):
+    need_update = False
+    for grid in [gridsearch, gridloss, gridaccu]:
+        if not os.path.exists(f"static/{grid}"):
+            need_update = True
+            create_tmp_img(f"static/{grid}")
+    if need_update:
         return redirect("/update")
-
     else:
         return render_template(
             "index.html",
@@ -61,12 +64,14 @@ def display_static():
 
 @app.route("/update")
 def update():
-    if not __is_server_busy__:
+    model = session.get("model", None)
+    if not model:
+        return redirect("/")
+    elif not __is_server_busy__:
         lock_server()
-        model = session.get("model", None)
         notebooks = session["notebooks"]
-        update_grid_search(model, delay=1)
-        update_grid_metric(model, delay=1)
+        update_grid_search(model, delay=0)
+        update_grid_metric(model, delay=0)
         session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
         print(f"Accounts: {session['accounts']}")
         unlock_server()
@@ -101,7 +106,7 @@ def update_grid_search(model, delay):
     or time.time() - os.path.getmtime(path) > delay:
         grid = GridSearch.make_grid(drive, model)
         fig = GridSearch.display_grid(grid, model)
-        fig.savefig(path, bbox_inches='tight', pad_inches=0)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0, transparent=True)
 
 def update_grid_metric(model, delay):
     path = {"loss": f"static/fig/{model}_lossGridMetrics.png",
@@ -111,7 +116,10 @@ def update_grid_metric(model, delay):
         data, _ = GridMetric.update_json_tab(drive, f"{ROOT_PATH}/backup/{model}")
         for metric in ["accu", "loss"]:
             fig = GridMetric.merge_cell_metric(data, metric)
-            fig.savefig(path[metric])
+            fig.savefig(path[metric], facecolor=fig.get_facecolor(), edgecolor='none')
+
+def create_tmp_img(path):
+    Image.new("RGB", (16, 16), "white").save(path)
 
 def list_models():
     root_id = Gdrive.get_id_from_path(drive, path=f"{ROOT_PATH}/backup")
