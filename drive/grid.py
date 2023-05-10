@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use("Agg")
+
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -17,6 +20,14 @@ def make_grid(drive, model):
     root_path = f"Stage_Bilbao_Neuroblastoma/G_Collab/backup/{model}"
     root_id   = Gdrive.get_id_from_path(drive, root_path)
     title_list, id_list = Gdrive.list_from_id(drive, root_id)
+
+    # suppression des dossiers ne faisant pas partis de la grille de recherche
+    for skip in SKIP_FOLDER:
+        if skip in title_list:
+            index = title_list.index(skip)
+            title_list.remove(skip)
+            id_list.pop(index)
+
     grid = {}
     for title, id in tqdm(zip(title_list, id_list), total=len(id_list)):
         if title in SKIP_FOLDER: continue

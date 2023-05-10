@@ -4,6 +4,7 @@ import os.path
 import io
 import json
 import numpy as np
+import datetime
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -38,6 +39,33 @@ def get_owner_from_file_id(drive, file_id):
     file = drive.files().get(fileId=file_id, fields="owners").execute()
     owners = file.get('owners', [])[0]["displayName"]
     return owners
+
+def get_file_infos_from_id(drive, id, utc_offset=0):
+    file = drive.files().get(
+        fileId=id,
+        fields="modifiedTime, name, lastModifyingUser, mimeType, size"
+    ).execute()
+
+    # Time format
+    modified_time_utc = file.get("modifiedTime")
+    modified_time = datetime.datetime.strptime(modified_time_utc, '%Y-%m-%dT%H:%M:%S.%fZ')
+    modified_time_local = modified_time + datetime.timedelta(hours=utc_offset)
+    modified_time_formatted = modified_time_local.strftime('%H:%M:%S')
+    modified_day = modified_time_local.strftime('%Y-%m-%d')
+    modified_time_sec = int(modified_time_local.timestamp())
+
+    file_info = {
+        "modifiedTime": modified_time_formatted,
+        "modifiedDay": modified_day,
+        "modifiedTimeSec": modified_time_sec,
+        "name": file.get("name"),
+        "lastModifyingUser": file.get("lastModifyingUser", {}).get("displayName"),
+        "mimeType": file.get("mimeType"),
+        "size": file.get("size")
+    }
+
+    return file_info
+
 
 def list_from_id(drive, id):
     results = drive.files().list(

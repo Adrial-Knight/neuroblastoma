@@ -21,3 +21,20 @@
 .center-text {
     text-align: center;
 }
+
+.container {
+  display: flex;
+}
+
+.left-section {
+  flex: 1;
+  margin-left: 5%;
+}
+
+.right-section {
+  flex: 1;
+  margin-right: 5%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+}

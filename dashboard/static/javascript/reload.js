@@ -1,3 +1,3 @@
 setTimeout(function() {
-    window.location=window.location;
-}, 960000); // 16min = 960 000 millisecondes
+    window.location.href = '/reload';
+}, 300000); // 5min = 300 000ms
