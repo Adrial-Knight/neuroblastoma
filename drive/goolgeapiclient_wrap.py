@@ -115,14 +115,45 @@ def download_file(drive, id, local_path):
         status, done = downloader.next_chunk()
 
 def save_dic_to_drive(drive, data, fname, folder_id):
+    # Recherche fichier existant
+    file_exists = False
+    results = drive.files().list(
+        q=f"name='{fname}' and '{folder_id}' in parents",
+        fields="files(id)"
+    ).execute()
+    print(results)
+
+    # ID du fichier existant
+    if 'files' in results and len(results['files']) > 0:
+        file_id = results['files'][0]['id']
+        file_exists = True
+    else:
+        file_id = None
+
+    # Contenu à écrire
     content = io.BytesIO(json.dumps(to_json_compatible(data)).encode())
-    file_metadata = {
-        'name': fname,
-        'parents': [folder_id]
-    }
     media = MediaIoBaseUpload(content, mimetype='application/json')
-    file = drive.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    print("File uploaded successfully. ID:", file.get('id'))
+
+    # Crée ou met à jour le fichier
+    if file_exists:  # Met à jour le contenu du fichier existant
+        file = drive.files().update(
+            fileId=file_id,
+            media_body=media,
+            fields='id'
+        ).execute()
+        print("File updated successfully. ID:", file.get('id'))
+    else:  # Crée un nouveau fichier
+        file_metadata = {
+            'name': fname,
+            'parents': [folder_id]
+        }
+        file = drive.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        print("File uploaded successfully. ID:", file.get('id'))
+
     return file.get('id')
 
 def to_json_compatible(data):
