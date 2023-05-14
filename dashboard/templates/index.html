@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Dashboard</title>
+    <link rel="icon" type="image/png" href="static/images/icon.png">
     <link rel="stylesheet" href="../static/css/style.css">
     <script src="static/javascript/reload.js"></script>
     <script src="static/javascript/select_grid.js"></script>
@@ -21,12 +22,14 @@
             </select>
             <noscript><input type="submit" value="Afficher"></noscript>
             </form>
-            <button onclick="location.href='/update'">Update</button>
+            <div class="button-container">
+                <button onclick="location.href='/update'">Update</button>
+            </div>
         </div>
         <div class="right-section">
             <div>
                 <h3>Notebooks actifs</h3>
-                <p>{{ accounts }} / {{ notebooks }}</p>
+                <p>{{ accounts }} / {{ notebooks }}&nbsp;&nbsp;&nbsp;&nbsp;à {{ date }}</p>
             </div>
         </div>
     </div>
@@ -37,6 +40,11 @@
             <button onclick="showImage('gridsearch')">Grid Search</button>
             <button onclick="showImage('gridloss')">Grid Loss</button>
             <button onclick="showImage('gridaccu')">Grid Accu</button>
+            <h4>Métriques</h4>
+            <ul>
+                <li>Best loss: {{ best_loss }}</li>
+                <li>Best accu: {{ best_accu }}%</li>
+            </ul>
         </div>
         <div class="tab-default" id="gridsearch">
             <h3 class="center-text"> Avancement des entraînements </h3>

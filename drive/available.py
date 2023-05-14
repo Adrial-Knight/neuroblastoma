@@ -38,4 +38,6 @@ if __name__ == "__main__":
         except ValueError:
             nb = 1
         unused = get_unused(ACCOUNTS, historic, nb)
-        print(f"{unused=}")
+        for item in unused:
+            print(item, end=" ")
+        print("", end="\n")

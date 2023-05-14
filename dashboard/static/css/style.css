@@ -16,7 +16,12 @@
 }
 
 .tab-default {
+    margin-top: -95px;
     display: block;
+}
+
+.button-container {
+    margin-top: 3px;
 }
 
 .fullscreen-image {

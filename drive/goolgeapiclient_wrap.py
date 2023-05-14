@@ -121,7 +121,6 @@ def save_dic_to_drive(drive, data, fname, folder_id):
         q=f"name='{fname}' and '{folder_id}' in parents",
         fields="files(id)"
     ).execute()
-    print(results)
 
     # ID du fichier existant
     if 'files' in results and len(results['files']) > 0:

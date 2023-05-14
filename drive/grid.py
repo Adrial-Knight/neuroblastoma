@@ -3,6 +3,7 @@ matplotlib.use("Agg")
 
 import numpy as np
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 14})
 from tqdm import tqdm
 
 try:

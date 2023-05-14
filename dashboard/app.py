@@ -1,5 +1,6 @@
 import os
 import time
+import datetime
 import json
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -27,10 +28,12 @@ def index():
     session["all_models"] = all_models
     session["notebooks"] = notebooks
     session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
+    session["date"] = datetime.datetime.now().strftime("%H:%M")
     return render_template(
         "index.html",
         accounts=len(session["accounts"]),
         notebooks=len(session["notebooks"]),
+        date=session["date"],
         all_models=session["all_models"])
 
 @app.route("/display", methods=["GET", "POST"])
@@ -51,12 +54,16 @@ def display_static():
     if need_update:
         return redirect("/update")
     else:
+        best_loss, best_accu = get_best_metrics()
         return render_template(
             "index.html",
             model=model,
             all_models=session["all_models"],
             accounts=len(session["accounts"]),
             notebooks=len(session["notebooks"]),
+            date=session["date"],
+            best_loss=best_loss,
+            best_accu=best_accu,
             gridsearch=url_for("static", filename=gridsearch),
             gridloss=url_for("static", filename=gridloss),
             gridaccu=url_for("static", filename=gridaccu)
@@ -69,12 +76,18 @@ def update():
         return redirect("/")
     elif not __is_server_busy__:
         lock_server()
-        notebooks = session["notebooks"]
-        update_grid_search(model, delay=0)
-        update_grid_metric(model, delay=0)
-        session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
-        print(f"Accounts: {session['accounts']}")
-        unlock_server()
+        try:
+            notebooks = session["notebooks"]
+            update_grid_search(model, delay=0)
+            data = update_grid_metric(model, delay=0)
+            update_best_metrics(data)
+            session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
+            session["date"] = datetime.datetime.now().strftime("%H:%M")
+            print(f"Accounts: {session['accounts']}")
+        except HttpError:
+            print("[SERVER]: Bad timing, abort")
+        finally:
+            unlock_server()
     return redirect("/display")
 
 @app.route("/reload")
@@ -117,6 +130,30 @@ def update_grid_metric(model, delay):
         for metric in ["accu", "loss"]:
             fig = GridMetric.merge_cell_metric(data, metric)
             fig.savefig(path[metric], facecolor=fig.get_facecolor(), edgecolor='none')
+        return data
+
+def update_best_metrics(data):
+    best = {"loss": float("inf"), "accu": 0}
+    for key, val in data.items():
+        best["loss"] = min(best["loss"], min(val["best_loss"]))
+        best["accu"] = max(best["accu"], max(val["best_accu"]))
+    with open("static/json/best_metrics.json", "r") as fd:
+        data = json.load(fd)
+        data[session["model"]] = best
+    with open("static/json/best_metrics.json", "w") as fd:
+        json.dump(data, fd)
+
+def get_best_metrics():
+    model = session.get("model", None)
+    loss = None
+    accu = None
+    if model:
+        with open("static/json/best_metrics.json", "r") as fd:
+            data = json.load(fd)
+            if model in data.keys():
+                loss = round(data[model]["loss"], 3)
+                accu = round(data[model]["accu"] * 100, 2)
+    return loss, accu
 
 def create_tmp_img(path):
     Image.new("RGB", (16, 16), "white").save(path)
