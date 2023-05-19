@@ -5,6 +5,7 @@ import json
 import matplotlib.pyplot as plt
 from PIL import Image
 from flask import Flask, request, send_file, render_template, url_for, redirect, session
+from googleapiclient.errors import HttpError
 
 import sys
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -13,6 +14,7 @@ import drive.goolgeapiclient_wrap as Gdrive
 import drive.grid as GridSearch
 import drive.main as GridMetric
 import drive.alive as AccountChecker
+import drive.custom_sort as CustomSort
 
 app = Flask(__name__)
 app.secret_key = "secret_key"
@@ -25,6 +27,7 @@ __is_server_busy__ = False
 def index():
     all_models = list_models()
     notebooks = AccountChecker.get_notebook_ids(drive, ROOT_PATH)
+    session["forced_update"] = False
     session["all_models"] = all_models
     session["notebooks"] = notebooks
     session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
@@ -78,17 +81,28 @@ def update():
         lock_server()
         try:
             notebooks = session["notebooks"]
+            if session["forced_update"]:
+                grid_metric_delay = 0
+                session["forced_update"] = False
+            else:
+                grid_metric_delay = 3600
             update_grid_search(model, delay=0)
-            data = update_grid_metric(model, delay=0)
-            update_best_metrics(data)
-            session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
+            if data := update_grid_metric(model, delay=grid_metric_delay):
+                update_best_metrics(data)
+            session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=120, utc_offset=2)
             session["date"] = datetime.datetime.now().strftime("%H:%M")
             print(f"Accounts: {session['accounts']}")
-        except HttpError:
+        except HttpError as e:
             print("[SERVER]: Bad timing, abort")
+            print(e)
         finally:
             unlock_server()
     return redirect("/display")
+
+@app.route("/forced_update")
+def forced_update():
+    session["forced_update"] = True
+    return redirect("/update")
 
 @app.route("/reload")
 def reload():
@@ -131,6 +145,8 @@ def update_grid_metric(model, delay):
             fig = GridMetric.merge_cell_metric(data, metric)
             fig.savefig(path[metric], facecolor=fig.get_facecolor(), edgecolor='none')
         return data
+    else:
+        return None
 
 def update_best_metrics(data):
     best = {"loss": float("inf"), "accu": 0}
@@ -163,6 +179,7 @@ def list_models():
     models, _ = Gdrive.list_from_id(drive, root_id)
     for folder in TO_SKIP["models"]:
         models.remove(folder)
+    models = sorted(models, key=CustomSort.alphanum)
     return models
 
 

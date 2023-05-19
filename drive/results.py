@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import goolgeapiclient_wrap as Gdrive
 import re
+import custom_sort
 
 SUMMARY_FOLDER = "__Summary__"
 RESULTS_FOLDER = "__Results__"
@@ -43,16 +44,7 @@ def filter_list_by_pattern(lst, pattern):
     else:
         raise ValueError("The star (*) must be at the beginnig or at the end.")
 
-    def custom_sort(item):
-        word = ""
-        number = ""
-        for char in item[::-1]:
-            if char.isdigit():
-                number = char + number
-            else:
-                word = char + word
-        return word, int(number)
-    filtered_list = sorted(filtered_list, key=custom_sort)
+    filtered_list = sorted(filtered_list, key=custom_sort.alphanum())
 
     return filtered_list
 
