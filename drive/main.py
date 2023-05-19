@@ -110,7 +110,7 @@ def find_best_accu(data1, data2):
 
 def load_cell_attempts(drive, cell_id):
     samples_title, samples_id = Gdrive.list_from_id(drive, cell_id)
-    if TMP_FOLDER in samples_title:
+    while TMP_FOLDER in samples_title:
         idx_tmp = samples_title.index(TMP_FOLDER)
         samples_title.pop(idx_tmp)
         samples_id.pop(idx_tmp)
@@ -149,8 +149,10 @@ def map_cells_to_coord(data):
     batch = sorted(list(set([int(cell.split('_')[1]) for cell in cells])))
     cell_map = {}
     for i, l in enumerate(lr):
+        lr[i] = f"{l:.0e}"
         for j, b in enumerate(batch):
             cell_map[f"{l}_{b}"] = (i, j)
+            cell_map[f"{l:.0e}_{b}"] = (i, j)
     return cell_map, (lr, batch)
 
 def merge_cell_metric(data, metric):
@@ -203,7 +205,7 @@ def merge_cell_metric(data, metric):
 if __name__ == "__main__":
     path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
     backbones = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "VGG11", "VGG13", "VGG16", "VGG19"]
-    backbones = ["Inception3_SGD_CNL2"]
+    backbones = ["ResNet152_SGD_CNL1"]
     drive = Gdrive.identification()
     for b in backbones:
         print(b)

@@ -72,9 +72,9 @@ def display_grid(grid, model):
             value = heatmap[i, j]
             if value < 6: color = "black"
             else: color = "white"
-            if not (str(lr), str(batch)) in grid.keys():
-                continue
-            plt.text(j, i, str(int(value)), color=color, fontweight="bold", ha="center", va="center")
+            if (str(lr), str(batch)) in grid.keys() \
+            or (f"{lr:.0e}", str(batch)) in grid.keys():
+                plt.text(j, i, str(int(value)), color=color, fontweight="bold", ha="center", va="center")
     return fig
 
 if __name__ == "__main__":
