@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import goolgeapiclient_wrap as Gdrive
 import re
-import custom_sort
+import sys, os
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
+import drive.goolgeapiclient_wrap as Gdrive
+from drive import custom_sort
 
 SUMMARY_FOLDER = "__Summary__"
 RESULTS_FOLDER = "__Results__"
@@ -14,7 +18,6 @@ def main(path, pattern):
     names = filter_list_by_pattern(data, pattern)
     accu  = [data[name]["accu"]["best"] for name in names]
     loss  = [data[name]["loss"]["best"] for name in names]
-    print(names)
     names = [name.split("_")[0] for name in names]
     # names = clean_names(names, pattern)
     print(names)
@@ -44,7 +47,7 @@ def filter_list_by_pattern(lst, pattern):
     else:
         raise ValueError("The star (*) must be at the beginnig or at the end.")
 
-    filtered_list = sorted(filtered_list, key=custom_sort.alphanum())
+    filtered_list = sorted(filtered_list, key=custom_sort.alphanum)
 
     return filtered_list
 
