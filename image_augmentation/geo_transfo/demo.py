@@ -3,11 +3,17 @@ import matplotlib.pyplot as plt
 import os
 from PIL import Image
 
+FIGURES = "../../doc/presentation/augmentation/geometric_transformations"
+
 def run_test(im_path):
     image = plt.imread(im_path)
+    image = frame(image, length=2)
     im_list = geometric_transform(image)
     show_transform(im_list)
     save_im_list(im_path, im_list)
+
+def frame(image, length):
+    return np.pad(image, ((length, length), (length, length), (0,0)), constant_values=0)
 
 def geometric_transform(image):
     im_list = [image, np.fliplr(image)]
@@ -17,12 +23,11 @@ def geometric_transform(image):
     return im_list
 
 def save_im_list(original_path, im_list):
-    os.makedirs("results", exist_ok=True)
+    os.makedirs(FIGURES, exist_ok=True)
     fname, _ = os.path.splitext(os.path.basename(original_path))
-    fpath = f"results/{fname}"
     for i in range(4):
-        Image.fromarray(im_list[2*i]).save(f"{fpath}_nf{str(90*i)}.jpg", format="JPEG", quality=100)
-        Image.fromarray(im_list[2*i+1]).save(f"{fpath}_fh{str(90*i)}.jpg", format="JPEG", quality=100)
+        Image.fromarray(im_list[2*i]).save(f"{FIGURES}/nf{str(90*i)}.jpg", format="JPEG", quality=100)
+        Image.fromarray(im_list[2*i+1]).save(f"{FIGURES}/fh{str(90*i)}.jpg", format="JPEG", quality=100)
 
 def show_transform(im_list):
     fig = plt.figure(figsize=(12,12))

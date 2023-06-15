@@ -25,13 +25,17 @@ def main():
                     if file.endswith(".pth"):
                         score = Gdrive.load_json_from_id(drive, files_id[files.index("details.json")])["best"]
                         metric = file.split("_")[1].split(".")[0]
-                        epoch = score[f"epoch_{metric}"]
-                        value = score[metric]
+                        epoch = -1
+                        try:
+                            epoch = score[f"epoch_{metric}"]
+                            value = score[metric]
+                            if metric == "accu":
+                                print(f"Accu={value:.2%}", end=" ")
+                            else:
+                                print(f"Loss={round(value, 4)}", end=" ")
+                        except KeyError:
+                            pass
                         owner = Gdrive.get_owner_from_file_id(drive, file_id)
-                        if metric == "accu":
-                            print(f"Accu={value:.2%}", end=" ")
-                        else:
-                            print(f"Loss={round(value, 4)}", end=" ")
                         print(f"(epoch {epoch}) in {backbone}/{cell}/{exp} (owner: {owner})")
 
 if __name__ == "__main__":

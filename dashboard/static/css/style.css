@@ -16,7 +16,7 @@
 }
 
 .tab-default {
-    margin-top: -95px;
+    margin-top: -180px;
     display: block;
 }
 
@@ -38,6 +38,11 @@
 
 .center-text {
     text-align: center;
+}
+
+.title-text {
+    text-align: center;
+    margin-bottom: -10px;
 }
 
 .container {

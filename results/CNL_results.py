@@ -18,6 +18,8 @@ def get_best_metrics(root_path, backbones, tag, exact_end):
     for network in network_name_list:
         for bt in backbone_tags:
             if network.startswith(bt):
+                if network in ["VGG19_SGD_CNL3_modif1", "VGG19_SGD_CNL3_modif2"]:
+                    continue
                 idx = network_name_list.index(network)
                 idx_list.append(idx)
     # Ajout des dossiers cibles commençant par backbones et se terminant par exact_end
@@ -41,7 +43,10 @@ def get_best_metrics(root_path, backbones, tag, exact_end):
         loss_list = []
         for key, val in data.items():
             loss_list += val["best_loss"]
-        loss = min(loss_list)
+        try:
+            loss = min(loss_list)
+        except ValueError:
+            loss = None
         backbone = network_name.split("_")[0]
         if backbone in loss_dico.keys():
             loss_dico[backbone].append(loss)
@@ -55,11 +60,12 @@ def display(loss_dico):
     plt.figure()
 
     # Zone de loss sans entraînement
-    random_max = 0.7056 + 0.0444
-    random_min = 0.7056 - 0.0444
+    random_max = 0.7018799094287894 + 0.03595109482375083
+    random_min = 0.7018799094287894 - 0.03595109482375083
+
     N = max(len(val) for val in loss_dico.values())
     plt.fill_between(range(N), random_min, random_max, color="red", alpha=0.3, linestyle="dashed", edgecolor="black")
-    text_x = N // 2
+    text_x = N / 2
     text_y = (random_max + random_min) / 2
     plt.text(text_x, text_y, "Loss without training", ha="center", va="center", color="black", fontsize=11)
 
@@ -68,10 +74,15 @@ def display(loss_dico):
     for c, (key, val) in zip(colors, loss_dico.items()):
         plt.plot(val, "-s", color=c, label=key)
 
+    # Axe des abscisses entier, sans séparateur de décimal
+    xticks = range(0, N)
+    plt.xticks(xticks, [int(tick) for tick in xticks])
+
     # Paramètres figure
     plt.ylabel("Loss")
-    plt.xlabel("Number of non-linearities added")
-    plt.legend(title="Backbone", loc="center right")
+    plt.xlabel("Number of layers with unfrozen ImageNet weights")
+    # plt.xlabel("Number of non-linearities added")
+    plt.legend(title="Backbone", loc="upper left")
     plt.grid(True)
     plt.show()
 
@@ -79,7 +90,7 @@ def display(loss_dico):
 if __name__ == "__main__":
     root_path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
     backbones = ["Inception3", "ResNet18", "ResNet152", "VGG19"]
-    pattern = "_SGD_CNL"
+    pattern = "_SGD_UFN"
     exact_end = "_SGD"
     loss_dico = get_best_metrics(root_path, backbones, pattern, exact_end)
     display(loss_dico)

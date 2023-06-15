@@ -190,7 +190,7 @@ def merge_cell_metric(data, metric):
     for j, b in enumerate(batch):
         axs[(0, j)].set_title(f"batch={int(b)}")
     for i, l in enumerate(lr):
-        axs[(i, 0)].set_ylabel(f"lr={float(l)}", fontsize=fontsize+2, fontstyle='normal', rotation=0)
+        axs[(i, 0)].set_ylabel(f"lr={float(l):.0e}", fontsize=fontsize+2, fontstyle='normal', rotation=0)
         axs[(i, 0)].yaxis.set_label_coords(-0.3, 0.45)
 
     # Fond de figure transparente, fond des subplots en blanc
@@ -204,9 +204,13 @@ def merge_cell_metric(data, metric):
 
 if __name__ == "__main__":
     path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
-    backbones = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "VGG11", "VGG13", "VGG16", "VGG19"]
-    backbones = ["ResNet152_SGD_CNL1"]
+    backbones = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152", "VGG11", "VGG13", "VGG16", "VGG19", "Inception3"]
+    backbones = ["VGG19_SGD_CNL5", "VGG19_SGD_CNL6"]
+    # backbones = ["VGG19_SGD", "VGG19_SGD_CNL4"]
+    # backbones = ["Inception3_SGD_CNL4"]
     drive = Gdrive.identification()
+    update_json_tab(drive, f"{path}/ResNet18_SGD_UFN4")
+    exit(1)
     for b in backbones:
         print(b)
         summarize_tab(drive, f"{path}/{b}")

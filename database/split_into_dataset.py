@@ -155,12 +155,12 @@ def print_parts(parts, method="", mu=None, eps=None):
 def savefig_family_repartition(family_infos):
     fig, ax = plt.subplots(num=f"{family_infos['label']} Class Balance", nrows=1, ncols=1)
     labels  = [f"f{i}" for i in range(1, len(family_infos["category"])+1)]
-    ax.pie(family_infos["proportions"], labels=labels,
-           autopct="%1.1f%%", textprops={"fontsize": 9})
+    ax.pie(family_infos["proportions"], labels=None, autopct="%1.1f%%", textprops={"fontsize": 11})
     for i, prop in enumerate(family_infos["proportions"]):
         if prop < 0.05:
             plt.setp(ax.texts[2*i],   visible=False)
             plt.setp(ax.texts[2*i+1], visible=False)
+    ax.axis("equal")
     fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
     ax.margins(0, 0)
     fig.set_size_inches(2.5, 2.5)
@@ -174,7 +174,14 @@ def savefig_partition(family_infos, parts, method):
     proportions = [P["capacity"] if P["capacity"] > 0 else 0 for P in parts]
     datasets = ["P1", "P2", "P3"]
     labels = [f"{dataset} ({len(P['category'])})" for dataset, P in zip(datasets, parts)]
-    ax.pie(proportions, labels=labels, autopct="%1.1f%%", textprops={"fontsize": 11})
+
+    _, _, autopcts = ax.pie(proportions, labels=None, autopct="%1.1f%%", textprops={"fontsize": 11})
+
+    # Ajout des labels à l'intérieur
+    for label, autopct in zip(labels, autopcts):
+        text = f"{label}\n{autopct.get_text()}"
+        autopct.set_text(text)
+
     ax.axis("equal")
     fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
     ax.margins(0, 0)
@@ -189,13 +196,15 @@ def savefig_loss(family_infos, loss_metrics, mu_list):
     loss_capacity = loss_metrics["capacity"]
     loss_diversity = loss_metrics["diversity"]
     mean_loss = (loss_capacity + loss_diversity) / 2
-    ax.plot(mu_list, loss_capacity, label="Loss Capacity")
-    ax.plot(mu_list, loss_diversity, label="Loss Diversity")
-    ax.plot(mu_list, mean_loss, linestyle="--", label="Loss Mean")
-    ax.set_xlabel("$\mu$")
-    ax.set_ylabel("Loss")
+    ax.plot(mu_list, loss_capacity, label="Capacité")
+    ax.plot(mu_list, loss_diversity, label="Diversité")
+    ax.plot(mu_list, mean_loss, linestyle="--", label="Moyenne")
+    ax.set_xlabel("$\mu$", fontsize=14)
+    ax.set_ylabel("Perte", fontsize=14)
     ax.grid()
-    ax.legend()
+    ax.legend(fontsize=14)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
     plt.savefig(f"{FIG_FOLDER}/loss_IFP_{family_infos['label']}.pdf", format="pdf", bbox_inches="tight", pad_inches=0)
     return fig
 
@@ -204,10 +213,14 @@ def savefig_heatmap(family_infos, metrics, mu_list, eps_list, type):
     fig, ax = plt.subplots(num=f"Heatmap {type} - {family_infos['label']} Class")
     im = plt.imshow(heatmap, cmap="coolwarm", origin="lower",
                     extent=[eps_list[0], eps_list[-1], mu_list[0], mu_list[-1]])
-    ax.set_xlabel("Extra Capacity $\epsilon$")
-    ax.set_ylabel("$\mu$")
+    ax.set_xlabel("$\epsilon$", fontsize=18)
+    ax.set_ylabel("$\mu$", fontsize=18)
     ax.set_aspect("auto")
-    fig.colorbar(im)
+    cbar = fig.colorbar(im)
+    cbar.ax.tick_params(labelsize=17)
+    ax.get_yticklabels()[0].set_visible(False)
+    plt.xticks(fontsize=17)
+    plt.yticks(fontsize=17)
     plt.savefig(f"{FIG_FOLDER}/heatmap_{type}_{family_infos['label']}.pdf",
                 format="pdf", bbox_inches="tight", pad_inches=0)
     return fig
@@ -410,9 +423,11 @@ def test(db, prop=[.7, .15, .15]):
 
 if __name__ == "__main__":
     # db="database/224x224"
-    db="database/250x250"
-    proportions = [.75, .125, .125]
-    # test(db, prop=proportions)
+    db="224/unsplit"
+    proportions = [.7, .15, .15]
+    test(db, prop=proportions)
+
+    exit(1)
     datasets = split_files(db, prop=proportions)
     new_db = assign_files(db, datasets)
     augment_and_balance(new_db, datasets)

@@ -4,7 +4,8 @@ import datetime
 import json
 import matplotlib.pyplot as plt
 from PIL import Image
-from flask import Flask, request, send_file, render_template, url_for, redirect, session
+import logging
+from flask import Flask, request, send_file, render_template, url_for, redirect
 from googleapiclient.errors import HttpError
 
 import sys
@@ -15,10 +16,14 @@ import drive.grid as GridSearch
 import drive.main as GridMetric
 import drive.alive as AccountChecker
 import drive.custom_sort as CustomSort
+import drive.available as AccountHistoric
 
 app = Flask(__name__)
 app.secret_key = "secret_key"
+session = {}
 drive = Gdrive.identification()
+PORT = 5000
+HOST = "localhost"
 TO_SKIP = {"models": ["__Results__", "LeakTest"]}
 ROOT_PATH = "Stage_Bilbao_Neuroblastoma/G_Collab"
 __is_server_busy__ = False
@@ -30,12 +35,14 @@ def index():
     session["forced_update"] = False
     session["all_models"] = all_models
     session["notebooks"] = notebooks
-    session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=90, utc_offset=2)
+    session["busy_accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=120, utc_offset=2)
+    session["next_accounts"] = AccountHistoric.get_unused_for_dashboard(len(notebooks))
     session["date"] = datetime.datetime.now().strftime("%H:%M")
     return render_template(
         "index.html",
-        accounts=len(session["accounts"]),
+        busy_accounts=len(session["busy_accounts"]),
         notebooks=len(session["notebooks"]),
+        next_accounts = session["next_accounts"],
         date=session["date"],
         all_models=session["all_models"])
 
@@ -62,8 +69,9 @@ def display_static():
             "index.html",
             model=model,
             all_models=session["all_models"],
-            accounts=len(session["accounts"]),
+            busy_accounts=len(session["busy_accounts"]),
             notebooks=len(session["notebooks"]),
+            next_accounts=session["next_accounts"],
             date=session["date"],
             best_loss=best_loss,
             best_accu=best_accu,
@@ -89,12 +97,18 @@ def update():
             update_grid_search(model, delay=0)
             if data := update_grid_metric(model, delay=grid_metric_delay):
                 update_best_metrics(data)
-            session["accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=120, utc_offset=2)
+            try:
+                session["busy_accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=120, utc_offset=2)
+            except HttpError as e:
+                _print("Change in some notebook IDs")
+                notebooks = AccountChecker.get_notebook_ids(drive, ROOT_PATH)
+                session["notebooks"] = notebooks
+                session["busy_accounts"] = AccountChecker.find_busy_accounts(drive, notebooks, delay=120, utc_offset=2)
+
             session["date"] = datetime.datetime.now().strftime("%H:%M")
-            print(f"Accounts: {session['accounts']}")
+            session["next_accounts"] = AccountHistoric.get_unused_for_dashboard(len(session["notebooks"]))
         except HttpError as e:
-            print("[SERVER]: Bad timing, abort")
-            print(e)
+            _print(e)
         finally:
             unlock_server()
     return redirect("/display")
@@ -112,15 +126,18 @@ def lock_server():
     global __is_server_busy__
     if not __is_server_busy__:
         __is_server_busy__ = True
-        print("[SERVER]: Locked")
+        _print("busy")
     else:
-        print("[SERVER]: Busy")
+        _print("...")
 
 def unlock_server():
     global __is_server_busy__
     if __is_server_busy__:
         __is_server_busy__ = False
-        print("[SERVER]: Unlocked")
+
+def _print(message: str):
+    now = datetime.datetime.now().strftime("[%d/%b/%Y %H:%M:%S]")
+    print(f"{HOST}:{PORT} - - {now} \"{message}\"")
 
 @app.after_request
 def add_header(response):
@@ -131,9 +148,10 @@ def update_grid_search(model, delay):
     path = f"static/fig/{model}_gridsearch.png"
     if not os.path.exists(path) \
     or time.time() - os.path.getmtime(path) > delay:
-        grid = GridSearch.make_grid(drive, model)
-        fig = GridSearch.display_grid(grid, model)
+        grid, active = GridSearch.make_grid(drive, model)
+        fig = GridSearch.display_grid(grid, active, model)
         fig.savefig(path, bbox_inches='tight', pad_inches=0, transparent=True)
+        plt.close()
 
 def update_grid_metric(model, delay):
     path = {"loss": f"static/fig/{model}_lossGridMetrics.png",
@@ -184,4 +202,9 @@ def list_models():
 
 
 if __name__ == "__main__":
-    app.run()
+    if len(sys.argv) == 2: PORT = int(sys.argv[1])
+
+    # Masquer les sorties de Flask dans le terminal
+    log = logging.getLogger("werkzeug")
+    log.setLevel(logging.ERROR)
+    app.run(host=HOST, port=PORT, debug=False)

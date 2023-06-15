@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 14})
 from tqdm import tqdm
@@ -14,8 +15,8 @@ except ImportError:
 SKIP_FOLDER = ["__Summary__"]
 
 def main(drive, model):
-    grid = make_grid(drive, model)
-    display_grid(grid, model)
+    grid, active = make_grid(drive, model)
+    display_grid(grid, active, model)
 
 def make_grid(drive, model):
     root_path = f"Stage_Bilbao_Neuroblastoma/G_Collab/backup/{model}"
@@ -29,17 +30,26 @@ def make_grid(drive, model):
             title_list.remove(skip)
             id_list.pop(index)
 
-    grid = {}
+    grid   = {}
+    active = {}
     for title, id in tqdm(zip(title_list, id_list), total=len(id_list)):
         if title in SKIP_FOLDER: continue
-        exp_list, _ = Gdrive.list_from_id(drive, id)
+        exp_list, exp_id_list = Gdrive.list_from_id(drive, id)
         lr, batch = title.split("_")
         value = len(exp_list)
         if "tmp" in exp_list: value -= 1
+        _, files = Gdrive.list_from_id(drive, exp_id_list[0])
+        if files:
+            infos = Gdrive.get_file_infos_from_id(drive, files[0], utc_offset=2)
+            now = time.time()
+            is_running = abs(now - infos["modifiedTimeSec"]) < 120
+        else:
+            is_running = True
         grid[(lr, batch)] = value
-    return grid
+        active[(lr, batch)] = is_running
+    return grid, active
 
-def display_grid(grid, model):
+def display_grid(grid, active, model):
     # Récupérer les coordonnées et les valeurs
     coordinates = list(grid.keys())
     values = list(grid.values())
@@ -61,7 +71,7 @@ def display_grid(grid, model):
     fig = plt.figure()
     plt.imshow(heatmap, cmap="Blues", interpolation="nearest", vmin=0, vmax=10)
     plt.xticks(range(len(x_labels)), x_labels)
-    plt.yticks(range(len(y_labels)), y_labels)
+    plt.yticks(range(len(y_labels)), [f"{y:.0e}" for y in y_labels])
     plt.ylabel("Learning Rate")
     plt.xlabel("Batch Size")
     plt.colorbar(label="Experiences", pad=0.02)
@@ -69,15 +79,27 @@ def display_grid(grid, model):
     # Ajouter les valeurs à l'intérieur des cellules
     for j, batch in enumerate(x_labels):
         for i, lr in enumerate(y_labels):
-            value = heatmap[i, j]
+            value  = heatmap[i, j]
             if value < 6: color = "black"
             else: color = "white"
             if (str(lr), str(batch)) in grid.keys() \
             or (f"{lr:.0e}", str(batch)) in grid.keys():
+                is_running = active[(str(lr), str(batch))]
+                if is_running:
+                    plt.scatter(j + 0.36, i - 0.36, marker="o", color="orange", s=100)
                 plt.text(j, i, str(int(value)), color=color, fontweight="bold", ha="center", va="center")
+
+    # Tracer les lignes horizontales pour délimiter les cellules
+    for i in range(len(y_labels)): plt.axhline(i + 0.5, color="black")
+
+    # Tracer les lignes verticales pour délimiter les cellules
+    for j in range(len(x_labels)): plt.axvline(j + 0.5, color="black")
+
+
     return fig
 
 if __name__ == "__main__":
+    matplotlib.use("QtAgg")
     drive = Gdrive.identification()
-    main(drive, model="Inception3_SGD_CNL2")
+    main(drive, model="ResNet18_SGD_UFN4")
     plt.show()

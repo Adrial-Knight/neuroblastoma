@@ -37,12 +37,13 @@ def main(path, metric):
 
     # Répartition
     plt.figure()
-    plt.hist(valid_loss, bins=50, label="Validation")
-    plt.hist(train_loss, bins=50, label="Trainig")
+    plt.hist(valid_loss, bins=50, label="Validation", color="C1")
+    plt.hist(train_loss, bins=50, label="Training", color="C0")
     plt.legend(title="Datasets")
+    if metric == "accu": metric = "accuracy"
     plt.xlabel(f"{metric.capitalize()} at epoch 0")
     plt.ylabel("Nb experiences")
-    plt.title(f"Repartition of {metric} without training")
+    # plt.title(f"Repartition of {metric} without training")
     plt.grid(True)
 
 

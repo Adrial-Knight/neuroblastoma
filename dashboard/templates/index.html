@@ -9,13 +9,13 @@
 </head>
 <body>
     <div class="background-container"></div>
-    <h1 class="center-text">Supervision des entraînements</h1>
+    <h1 class="title-text">Colab Supervision</h1>
     <div class="container">
         <div class="left-section">
-            <h2>Sélection du modèle</h2>
+            <h2>Model Selection</h2>
             <form method="POST" action="{{ url_for('display_static') }}" autocomplete="off">
             <select name="model" onchange="this.form.submit()">
-                <option value="" {% if not model %}selected{% endif %}>Sélectionnez un modèle</option>
+                <option value="" {% if not model %}selected{% endif %}>Select a model</option>
                 {% for model_option in all_models %}
                     <option value="{{ model_option }}" {% if model == model_option %}selected{% endif %}>{{ model_option }}</option>
                 {% endfor %}
@@ -25,39 +25,48 @@
             <div class="button-container">
                 <button onclick="location.href='/forced_update'">Update</button>
             </div>
-        </div>
-        <div class="right-section">
-            <div>
-                <h3>Notebooks actifs</h3>
-                <p>{{ accounts }} / {{ notebooks }}&nbsp;&nbsp;&nbsp;&nbsp;à {{ date }}</p>
-            </div>
-        </div>
-    </div>
-    <br>
-    {% if model %}
-        <div class="left-section">
-            <h2>Supervision de {{ model }}</h2>
-            <button onclick="showImage('gridsearch')">Grid Search</button>
+            {% if model %}
+            <br>
+            <h2>{{ model }}</h2>
+            <button onclick="showImage('gridsearch')">Training Progress</button>
             <button onclick="showImage('gridloss')">Grid Loss</button>
             <button onclick="showImage('gridaccu')">Grid Accu</button>
-            <h4>Métriques</h4>
+            <h4>Metrics</h4>
             <ul>
                 <li>Best loss: {{ best_loss }}</li>
                 <li>Best accu: {{ best_accu }}%</li>
             </ul>
+            {% endif %}
         </div>
+        <div class="right-section">
+            <div>
+                <h3>Active Notebooks</h3>
+                <p>{{ busy_accounts }} / {{ notebooks }}&nbsp;&nbsp;at {{ date }}</p>
+                <br>
+                <h3>Next Accounts</h3>
+                <ol>
+                    {% for account in next_accounts %}
+                    <li>{{ account }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+    </div>
+        {% if model %}
         <div class="tab-default" id="gridsearch">
-            <h3 class="center-text"> Avancement des entraînements </h3>
-            <img src="{{ gridsearch }}" alt="Grid Search" class="center-image">
+            <h3 class="center-text"> Training Progress </h3>
+            <img src="{{ gridsearch }}" alt="Training Progress" class="center-image">
         </div>
         <div class="tab" id="gridloss">
-            <h3 class="center-text"> Fonction de perte </h3>
+            <h3 class="center-text"> Search Grid: Loss </h3>
             <img src="{{ gridloss }}" alt="Grid Loss" class="fullscreen-image">
         </div>
         <div class="tab" id="gridaccu">
-            <h3 class="center-text"> Précision</h3>
+            <h3 class="center-text"> Search Grid: Accuracy</h3>
             <img src="{{ gridaccu }}" alt="Grid Accu" class="fullscreen-image">
         </div>
-    {% endif %}
+        {% endif %}
+
+
 </body>
 </html>

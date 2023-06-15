@@ -21,7 +21,10 @@ def main(path, extension):
                 exp_path = f"{BACKUP}/{network_name}/{cell_name}/{exp_name}"
                 os.makedirs(exp_path, exist_ok=True)
                 file_name_list, file_id_list = Gdrive.list_from_id(drive, exp_id)
-                file_name_list, file_id_list = list(zip(*list(filter(lambda x: x[0].endswith(extension), zip(file_name_list, file_id_list)))))
+                try:
+                    file_name_list, file_id_list = list(zip(*list(filter(lambda x: x[0].endswith(extension), zip(file_name_list, file_id_list)))))
+                except ValueError:
+                    continue
                 for file_name, file_id in zip(file_name_list, file_id_list):
                     Gdrive.download_file(drive, file_id, f"{exp_path}/{file_name}")
 
