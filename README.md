@@ -1,4 +1,4 @@
-# Project Name: Binary Classification of Neuroblastoma using Convolutional Neural Networks
+# Binary Classification of Neuroblastoma using Convolutional Neural Networks
 
 This repository contains the code and documentation for my Final Year Project (PFE) conducted at the eVida laboratory in Bilbao, between February and June 2023. The project focuses on binary classification of Neuroblastoma using Convolutional Neural Networks.
 
