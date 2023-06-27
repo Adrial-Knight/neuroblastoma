@@ -3,6 +3,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 
+FIGURES = "../doc/LaTex/rapport/images/appendix/distribution"
 
 def get_0_values(path: str, metric: str):
     # liste stockant les valeurs des epochs 0
@@ -49,6 +50,8 @@ def main(path, metric):
 
 if __name__ == "__main__":
     path = "../backup"
-    main(path, metric="loss")
-    main(path, metric="accu")
-    plt.show(block=True)
+    for metric in ["loss", "accu"]:
+        main(path, metric)
+        plt.savefig(f"{FIGURES}/{metric}.pdf", format="pdf", bbox_inches="tight", pad_inches=0)
+        # plt.savefig(f"{FIGURES}/{metric}.png", format="png", bbox_inches="tight", pad_inches=0)
+    # plt.show(block=True)

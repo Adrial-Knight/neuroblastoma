@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import json
 
-FIG_FOLDER = "../doc/presentation/experience"
+FIG_FOLDER = "../doc/LaTex/rapport/images/database/experiences"
 
 
 def get_data(path: str, metric: str):
@@ -39,14 +39,15 @@ def create_fig(data: dict, exp_num: list, metric: str):
     for idx, num in enumerate(exp_num):
         exp = data[f"exp_{num}"]
         plt.plot(exp["valid_mean"], linestyle="-",  color=colors[idx], label=f"Exp {idx}")
+        plt.plot(exp["train_mean"], linestyle="--", color=colors[idx], label=f"_no_label_")
         plt.fill_between(range(np.size(exp["valid_mean"])), exp["valid_mean"] - exp["valid_std"], exp["valid_mean"] + exp["valid_std"], alpha=0.3, color=colors[idx], label="_no_label_")
     if metric == "accu":
-        plt.ylabel("Performance (%)", fontsize=15)
+        plt.ylabel("Accuracy (%)", fontsize=13)
     else:
-        plt.ylabel("Perte", fontsize=15)
-    plt.xlabel("epochs", fontsize=15)
-    plt.tick_params(axis="both", labelsize=15)
-    plt.legend(fontsize=15)
+        plt.ylabel("Loss", fontsize=13)
+    plt.xlabel("epochs", fontsize=13)
+    plt.tick_params(axis="both", labelsize=13)
+    plt.legend(fontsize=13)
     plt.grid()
     plt.savefig(f"{FIG_FOLDER}/{metric}.pdf", format="pdf", bbox_inches="tight", pad_inches=0)
 

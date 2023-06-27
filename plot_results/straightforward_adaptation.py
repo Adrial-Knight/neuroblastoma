@@ -73,16 +73,22 @@ def extract_result(drive, backup_path):
             batch = int(batch)
             if loss < result["loss"]["best"]:
                 result["loss"]["best"]  = loss
-                result["loss"]["epoch"] = val["best_epoch_loss"][exp_l]
+                result["loss"]["epoch"] = int(val["best_epoch_loss"][exp_l])
                 result["loss"]["lr"] = lr
                 result["loss"]["batch"] = batch
                 result["loss"]["exp"] = exp_l + 1
-            if accu > result["accu"]["best"]:
-                result["accu"]["best"]  = accu
-                result["accu"]["epoch"] = val["best_epoch_accu"][exp_a]
-                result["accu"]["lr"] = lr
-                result["accu"]["batch"] = batch
-                result["accu"]["exp"] = exp_a + 1
+
+                ## LOSS ONLY ##
+                result["accu"]["best"] = val["valid_accu"][exp_l][result["loss"]["epoch"]]
+
+
+            # if accu > result["accu"]["best"]:
+                # continue
+                # result["accu"]["best"]  = accu
+                # result["accu"]["epoch"] = val["best_epoch_accu"][exp_a]
+                # result["accu"]["lr"] = lr
+                # result["accu"]["batch"] = batch
+                # result["accu"]["exp"] = exp_a + 1
         return result
 
     data = {}

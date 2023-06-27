@@ -6,7 +6,6 @@ sys.path.append(parent_dir)
 import drive.goolgeapiclient_wrap as Gdrive
 import drive.custom_sort as CustomSort
 
-
 def get_best_metrics(root_path, backbones, tag, exact_end):
     drive = Gdrive.identification()
     root_id = Gdrive.get_id_from_path(drive, root_path)
@@ -56,7 +55,7 @@ def get_best_metrics(root_path, backbones, tag, exact_end):
     return loss_dico
 
 
-def display(loss_dico):
+def save_figure(loss_dico, config):
     plt.figure()
 
     # Zone de loss sans entraînement
@@ -80,17 +79,29 @@ def display(loss_dico):
 
     # Paramètres figure
     plt.ylabel("Loss")
-    plt.xlabel("Number of layers with unfrozen ImageNet weights")
-    # plt.xlabel("Number of non-linearities added")
+    plt.xlabel(config["xlabel"])
     plt.legend(title="Backbone", loc="upper left")
     plt.grid(True)
-    plt.show()
+
+    plt.savefig(f"{config['figure']}/results.pdf", format="pdf", bbox_inches="tight", pad_inches=0)
 
 
 if __name__ == "__main__":
     root_path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
     backbones = ["Inception3", "ResNet18", "ResNet152", "VGG19"]
-    pattern = "_SGD_UFN"
     exact_end = "_SGD"
+    pattern = "_SGD_UFN"
+
+    config = {"figure": ".", "xlabel": "x"}
+
+    if sys.argv[1] == "UFN":
+        pattern = "_SGD_UFN"
+        config["figure"] = "../doc/LaTex/rapport/images/architecture/last_layers_unfreezing"
+        config["xlabel"] = "Number of layers with unfrozen ImageNet weights"
+    elif sys.argv[1] == "CNL":
+        pattern = "_SGD_CNL"
+        config["figure"] = "../doc/LaTex/rapport/images/architecture/non_linear_output_extension"
+        config["xlabel"] = "Number of non-linearities added"
+
     loss_dico = get_best_metrics(root_path, backbones, pattern, exact_end)
-    display(loss_dico)
+    save_figure(loss_dico, config)
