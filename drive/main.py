@@ -16,13 +16,19 @@ TMP_FOLDER = "tmp"
 DATA_JSON = "data.json"
 
 def summarize_tab(drive, tab_path):
-    update = True
+    update = False
     if update:
         _, id = update_json_tab(drive, tab_path)
     else:
-        id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}/{DATA_JSON}")
+        id = Gdrive.get_id_from_path(drive, f"{tab_path}/{SUMMARY_FOLDER}")
+        fnames, ids = Gdrive.list_from_id(drive, id)
+        id = ids[fnames.index(DATA_JSON)]
     data = Gdrive.load_json_from_id(drive, id)
     data = Gdrive.from_json_compatible(data)
+
+    # select_keys = ["1e-05_8", "5e-05_8", "5e-05_16", "5e-05_32", "0.0001_8", "0.0001_16", "0.0001_32", "0.0001_64"]
+    # data = {key: val for key, val in data.items() if key in select_keys}
+
     print_best_metric(data)
     for metric in ["loss", "accu"]:
         fig = merge_cell_metric(data, metric)
@@ -97,6 +103,10 @@ def print_best_metric(data):
     print(f"Best loss: {best_loss}")
 
 def find_best_loss(data1, data2):
+    data1 = np.array(data1)
+    data2 = np.array(data2)
+    data1 = data1[data1 != 0]
+    data2 = data2[data2 != 0]
     merge = np.maximum(data1, data2)
     epoch = np.argmin(merge)
     loss  = max(data1[epoch], data2[epoch])
@@ -141,6 +151,7 @@ def load_cell_attempts(drive, cell_id):
         cell["best_accu"][i] = accu
         for line in ["train_loss", "train_accu", "valid_loss", "valid_accu"]:
             cell[line][i, :] = np.pad(details[line], (0, E-len(details[line])), constant_values=np.nan)
+            cell[line][i, cell[line][i, :] == 0] = np.nan
     return cell
 
 def map_cells_to_coord(data):
@@ -167,10 +178,13 @@ def merge_cell_metric(data, metric):
         coord = cell_map[cell_id]
         for dataset in ["train", "valid"]:
             key   = f"{dataset}_{metric}"
+            cell[key][cell[key] == 0] = np.nan
             mean  = np.nanmean(cell[key], axis=0)
             sigma = np.sqrt(np.nanvar(cell[key], axis=0))
 
-            N = len(mean)
+            N = sum(~np.isnan(mean))
+            mean = mean[:N]
+            sigma = sigma[:N]
             x = np.arange(N)
 
             axs[coord].plot(mean, linestyle='-', label=dataset)
@@ -181,11 +195,30 @@ def merge_cell_metric(data, metric):
             else:
                 axs[coord].set_ylim([0, 1])
             axs[coord].set_xlim([0, N])
+            # axs[coord].tick_params(axis="x", labelsize=fontsize)
+            # axs[coord].tick_params(axis="y", labelsize=fontsize)
 
+    best = {"coord": None, "value": 0, "epoch": None}
+    if metric == "loss": best["value"] = 1000
     for cell_id, cell in data.items():
         coord = cell_map[cell_id]
         axs[coord].plot(cell[f"best_epoch_{metric}"], cell[f"best_{metric}"],
                         marker=".", linestyle="None", markersize=3, color='red')
+        if metric == "accu":
+            max_accu = max(cell["best_accu"])
+            if max_accu > best["value"]:
+                best["coord"] = cell_map[cell_id]
+                best["value"] = max_accu
+                best["epoch"] = cell["best_epoch_accu"][cell["best_accu"] == max_accu][0]
+        else:
+            min_loss = min(cell["best_loss"])
+            if min_loss < best["value"]:
+                best["coord"] = cell_map[cell_id]
+                best["value"] = min_loss
+                best["epoch"] = cell["best_epoch_loss"][cell["best_loss"] == min_loss][0]
+    if best["coord"]:
+        axs[best["coord"]].plot(best["epoch"], best["value"], marker="d", markersize=7, markeredgecolor="black", markerfacecolor="lightgreen")
+
 
     for j, b in enumerate(batch):
         axs[(0, j)].set_title(f"batch={int(b)}")
@@ -197,6 +230,8 @@ def merge_cell_metric(data, metric):
     fig.patch.set_alpha(0)
     for ax in axs.flatten():
         ax.patch.set_facecolor("white")
+        if not len(ax.get_lines()):
+            ax.axis("off")
     plt.tight_layout()
 
     return fig
@@ -205,12 +240,11 @@ def merge_cell_metric(data, metric):
 if __name__ == "__main__":
     path = "Stage_Bilbao_Neuroblastoma/G_Collab/backup"
     backbones = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152", "VGG11", "VGG13", "VGG16", "VGG19", "Inception3"]
-    backbones = ["VGG19_SGD_CNL5", "VGG19_SGD_CNL6"]
+    backbones = ["VGG19_SGD_UFN6"]
     # backbones = ["VGG19_SGD", "VGG19_SGD_CNL4"]
     # backbones = ["Inception3_SGD_CNL4"]
     drive = Gdrive.identification()
-    update_json_tab(drive, f"{path}/ResNet18_SGD_UFN4")
-    exit(1)
+    # update_json_tab(drive, f"{path}/ResNet18_SGD_UFN4")
     for b in backbones:
         print(b)
         summarize_tab(drive, f"{path}/{b}")

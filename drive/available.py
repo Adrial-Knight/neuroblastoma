@@ -2,7 +2,7 @@ from pathlib import Path
 import sys
 
 ACCOUNTS = ["Un Kiwi", "Adrial-Knight", "P.J.M.", "P.M. matmeca", "P.M. enseirb", "P.M.", "P.M. 58"] \
-         + [f"P.C. {d:02d}" for d in range(1, 58)]
+         + [f"P.C. {d:02d}" for d in range(1, 77)]
 
 BANNED = ["P.C. 47"]
 
@@ -21,12 +21,16 @@ def get_unused(ACCOUNTS, historic, nb=3):
     historic = ACCOUNTS + historic
     used, unused = [], []
     for account in historic[::-1]:
-        if account in BANNED:
-            continue
-        used.append(account)
-        if len(used) == len(ACCOUNTS) - nb:
-            unused = [account for account in historic[::-1] if account not in used][:nb][::-1]
+        if len(ACCOUNTS) == nb:
             break
+        if account in ACCOUNTS:
+            ACCOUNTS.remove(account)
+    for account in historic[::-1]:
+        if len(unused) == nb:
+            break
+        if account in ACCOUNTS and not account in unused:
+            unused.append(account)
+    unused = unused[::-1]
     return unused
 
 def get_unused_for_dashboard(nb):
