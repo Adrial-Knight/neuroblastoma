@@ -38,7 +38,10 @@ def get_best_metrics(root_path, backbones, tag, exact_end):
         network_name, network_id = network
         summary_id = Gdrive.get_id_from_folder_id(drive, network_id, "__Summary__")
         data_id = Gdrive.get_id_from_folder_id(drive, summary_id, "data.json")
-        data = Gdrive.load_json_from_id(drive, data_id)
+        try:
+            data = Gdrive.load_json_from_id(drive, data_id)
+        except TypeError:
+            continue  # pas de données encore disponible
         loss_list = []
         for key, val in data.items():
             loss_list += val["best_loss"]
@@ -71,6 +74,9 @@ def save_figure(loss_dico, config):
     # Loss sur les backbones
     colors = ["C0", "C1", "C3", "C2"]
     for c, (key, val) in zip(colors, loss_dico.items()):
+        print(key, end=":  ")
+        for v in val: print(round(v, 3), end="  ")
+        print("\n")
         plt.plot(val, "-s", color=c, label=key)
 
     # Axe des abscisses entier, sans séparateur de décimal

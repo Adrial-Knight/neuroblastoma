@@ -1,6 +1,9 @@
 import os
 from PIL import Image
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib.ticker import MaxNLocator
+import matplotlib.ticker as ticker
 import numpy as np
 import json
 import shutil
@@ -69,7 +72,7 @@ def split_IFPO(family_infos, p=[.7, .15, .15], mu=1, extra_capacity=0):
     parts = [{"category": [], "capacity": c} for c in p]
     total_categories = len(categories)
     threshold = mu*min(parts[1]["capacity"], parts[2]["capacity"])
-    while categories and proportions[0] > threshold:
+    while parts[0]["capacity"] > threshold and proportions and proportions[0] > threshold:
         parts[0]["category"].append(categories.pop(0))
         parts[0]["capacity"] -= proportions.pop(0)
 
@@ -200,7 +203,7 @@ def savefig_loss(family_infos, loss_metrics, mu_list):
     ax.plot(mu_list, loss_diversity, label="Diversité")
     ax.plot(mu_list, mean_loss, linestyle="--", label="Moyenne")
     ax.set_xlabel("$\mu$", fontsize=14)
-    ax.set_ylabel("Perte", fontsize=14)
+    ax.set_ylabel("Loss", fontsize=14)
     ax.grid()
     ax.legend(fontsize=14)
     plt.xticks(fontsize=14)
@@ -211,18 +214,39 @@ def savefig_loss(family_infos, loss_metrics, mu_list):
 def savefig_heatmap(family_infos, metrics, mu_list, eps_list, type):
     heatmap = metrics[type]
     fig, ax = plt.subplots(num=f"Heatmap {type} - {family_infos['label']} Class")
-    im = plt.imshow(heatmap, cmap="coolwarm", origin="lower",
+
+    def sample_colormap(N: int, cmap: str):
+        base_cmap = plt.cm.get_cmap(cmap)
+        colors = base_cmap(np.linspace(0, 1, N))
+        cmap = ListedColormap(colors)
+        return cmap
+
+    heatmap = np.round(heatmap, 6)
+    unique_values = np.unique(heatmap)
+    num_ticks = len(unique_values)
+    cmap = sample_colormap(num_ticks, cmap="coolwarm")
+
+    im = plt.imshow(heatmap, cmap=cmap, origin="lower", interpolation="nearest",
                     extent=[eps_list[0], eps_list[-1], mu_list[0], mu_list[-1]])
     ax.set_xlabel("$\epsilon$", fontsize=18)
     ax.set_ylabel("$\mu$", fontsize=18)
     ax.set_aspect("auto")
+
     cbar = fig.colorbar(im)
+    cbar.locator = MaxNLocator(nbins=num_ticks)
+    locator = ticker.FixedLocator(cbar.get_ticks())
+    formatter = ticker.FixedFormatter([0] + list(np.round(unique_values, 2)))
+    cbar.locator = locator
+    cbar.formatter = formatter
+    cbar.update_ticks()
     cbar.ax.tick_params(labelsize=17)
+
     ax.get_yticklabels()[0].set_visible(False)
     plt.xticks(fontsize=17)
     plt.yticks(fontsize=17)
     plt.savefig(f"{FIG_FOLDER}/heatmap_{type}_{family_infos['label']}.pdf",
                 format="pdf", bbox_inches="tight", pad_inches=0)
+
     return fig
 
 def split_files(db, prop=[.7, .15, .15], class_names=["PD", "D"]):
@@ -385,14 +409,19 @@ def force_augmentation(old_root: str, augmentation: dict):
 
 def test(db, prop=[.7, .15, .15]):
     class_infos = {}
-    for cname in ["PD", "D"]:
+    clist = ["D", "PD"]
+    for cname in clist:
         family_infos = get_families(path=f"{db}/{cname}")
         compute_proportions(family_infos)
         class_infos[cname] = family_infos
 
     os.makedirs(FIG_FOLDER, exist_ok=True)
 
-    for cname in ["D", "PD"]:
+    family_infos = class_infos[cname]
+
+    split_IFPO(family_infos, prop, mu=1, extra_capacity=0.02)
+
+    for cname in clist:
         family_infos = class_infos[cname]
         total_families = len(family_infos["files"].keys())
         print(f"{cname} Class: {total_families} families")
@@ -423,7 +452,8 @@ def test(db, prop=[.7, .15, .15]):
 
 if __name__ == "__main__":
     # db="database/224x224"
-    db="224/unsplit"
+    FIG_FOLDER = "figures/250"
+    db="250/unsplit"
     proportions = [.7, .15, .15]
     test(db, prop=proportions)
 
