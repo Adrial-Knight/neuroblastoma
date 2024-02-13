@@ -30,5 +30,5 @@ The repository is organized into the following folders:
 The following [Google Drive link](https://drive.google.com/drive/folders/1bOLNcIhzC4OfU5d9aMTXEzl3niaEn1g8?usp=sharing) contains a summary of all the training sessions organized in JSON files stored within a ZIP archive, along with the best weights obtained from the trained networks.
 
 ## Contact
-Email: pminier@bordeaux-inp.fr \
+Email: pierre.minier@ims-bordeaux.fr \
 eVida: [http://evida.deusto.es/](http://evida.deusto.es/)
